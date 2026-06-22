@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRITUR</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+.app{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.header{background:#fff;border-bottom:0.5px solid #e0e0dc;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-logo{font-size:15px;font-weight:600;letter-spacing:2px}
+.header-right{display:flex;align-items:center;gap:8px}
+.showroom-badge{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.badge-dosan{background:#e1f5fe;color:#0277bd}
+.badge-hannam{background:#f3e5f5;color:#6a1b9a}
+.badge-seochon{background:#e8f5e9;color:#2e7d32}
+.badge-all{background:#f0ede8;color:#555}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.bottom-nav{background:#fff;border-top:0.5px solid #e0e0dc;display:grid;grid-template-columns:repeat(5,1fr);position:sticky;bottom:0;z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;padding:8px 4px;gap:2px;cursor:pointer;border:none;background:none;color:#999;font-size:10px}
+.nav-item.active{color:#1a1a1a}
+.nav-item i{font-size:20px}
+.main{flex:1;overflow-y:auto;padding:16px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e0e0dc;margin-bottom:12px;overflow:hidden}
+.card-header{padding:12px 16px;border-bottom:0.5px solid #f0f0ec;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600}
+.card-body{padding:12px 16px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-card{background:#fff;border-radius:10px;border:0.5px solid #e0e0dc;padding:11px 13px}
+.stat-label{font-size:11px;color:#999;margin-bottom:3px}
+.stat-value{font-size:17px;font-weight:600}
+.stat-sub{font-size:11px;color:#999;margin-top:2px}
+.stat-up{color:#2d7a3a}
+.shop-tabs{display:flex;gap:6px;margin-bottom:14px}
+.shop-tab{flex:1;padding:7px 4px;border-radius:20px;border:0.5px solid #e0e0dc;background:#fff;font-size:12px;cursor:pointer;color:#666;text-align:center}
+.shop-tab.active-dosan{background:#0277bd;color:#fff;border-color:#0277bd}
+.shop-tab.active-hannam{background:#6a1b9a;color:#fff;border-color:#6a1b9a}
+.shop-tab.active-seochon{background:#2e7d32;color:#fff;border-color:#2e7d32}
+.shop-tab.active-all{background:#555;color:#fff;border-color:#555}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:0.5px solid #f5f5f3;cursor:pointer}
+.check-item:last-child{border-bottom:none}
+.check-box{width:20px;height:20px;border-radius:50%;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.check-box.done{background:#1a1a1a;border-color:#1a1a1a}
+.check-box.done i{color:#fff;font-size:11px}
+.check-label{font-size:13px;line-height:1.5;flex:1}
+.check-label.done{color:#bbb;text-decoration:line-through}
+.notice-item{padding:11px 0;border-bottom:0.5px solid #f5f5f3}
+.notice-item:last-child{border-bottom:none}
+.notice-top{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
+.nbadge{font-size:10px;padding:2px 7px;border-radius:20px}
+.nbadge.all{background:#e8eaf6;color:#3949ab}
+.nbadge.dosan{background:#e1f5fe;color:#0277bd}
+.nbadge.hannam{background:#f3e5f5;color:#6a1b9a}
+.nbadge.seochon{background:#e8f5e9;color:#2e7d32}
+.nbadge.urgent{background:#fce4ec;color:#c62828}
+.nbadge.notice{background:#fff3e0;color:#e65100}
+.notice-title{font-size:13px;font-weight:500}
+.notice-body{font-size:12px;color:#555;margin-top:4px;line-height:1.7}
+.notice-date{font-size:11px;color:#bbb;margin-top:3px}
+.manual-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid #f5f5f3;cursor:pointer}
+.manual-item:last-child{border-bottom:none}
+.manual-icon{width:34px;height:34px;border-radius:8px;background:#f5f5f3;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.manual-icon i{font-size:17px;color:#555}
+.manual-title{font-size:13px;font-weight:500}
+.manual-sub{font-size:11px;color:#999}
+.contact-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid #f5f5f3}
+.contact-row:last-child{border-bottom:none}
+.contact-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.contact-name{font-size:13px;font-weight:500}
+.contact-role{font-size:11px;color:#999}
+.contact-actions{display:flex;gap:6px;margin-left:auto}
+.cbtn{width:28px;height:28px;border-radius:50%;border:0.5px solid #e0e0dc;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none}
+.cbtn i{font-size:14px;color:#555}
+.cta-btn{width:100%;padding:11px;border-radius:10px;border:0.5px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+.cta-btn.sec{background:#fff;color:#1a1a1a}
+.page-title{font-size:16px;font-weight:600;margin-bottom:14px}
+.back-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.back-btn{background:none;border:none;cursor:pointer;padding:0}
+.punch-wrap{text-align:center;padding:14px 0}
+.punch-time{font-size:28px;font-weight:600;margin-bottom:3px}
+.punch-date{font-size:12px;color:#999;margin-bottom:14px}
+.punch-btn{padding:12px 32px;border-radius:30px;border:none;background:#1a1a1a;color:#fff;font-size:13px;font-weight:500;cursor:pointer}
+.punch-btn.out{background:#fff;border:1.5px solid #1a1a1a;color:#1a1a1a}
+.attend-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #f5f5f3}
+.attend-row:last-child{border-bottom:none}
+.attend-av{width:30px;height:30px;border-radius:50%;background:#f0ede8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.abadge{font-size:10px;padding:2px 7px;border-radius:20px;margin-left:auto}
+.ab-in{background:#e8f5e9;color:#2d7a3a}
+.ab-late{background:#fff3e0;color:#e65100}
+.section-label{font-size:11px;color:#999;margin:12px 0 6px}
+.info-row{display:flex;gap:8px;padding:8px 0;border-bottom:0.5px solid #f5f5f3;align-items:flex-start}
+.info-row:last-child{border-bottom:none}
+.info-key{font-size:12px;color:#999;min-width:76px;flex-shrink:0;padding-top:1px}
+.info-val{font-size:12px;color:#1a1a1a;line-height:1.6;word-break:break-all}
+.info-val a{color:#0277bd;text-decoration:none}
+.sales-input-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #f5f5f3}
+.sales-input-row:last-child{border-bottom:none}
+.sales-input-label{font-size:13px;flex:1}
+.sales-input{width:100px;padding:6px 8px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:13px;text-align:right;background:#fff}
+.textarea{width:100%;padding:8px 10px;border:0.5px solid #e0e0dc;border-radius:8px;font-size:12px;resize:none;font-family:inherit;line-height:1.6;background:#fff}
+.inv-shelf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shelf-card{background:#f9f8f6;border-radius:8px;padding:10px;border:0.5px solid #e8e6e0}
+.shelf-name{font-size:11px;color:#999;margin-bottom:5px;font-weight:500}
+.shelf-item{font-size:11px;padding:2px 0;border-bottom:0.5px solid #f0ede8;line-height:1.5}
+.shelf-item:last-child{border-bottom:none}
+.wifi-box{background:#f0ede8;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;background:#fff}
+.login-logo{font-size:22px;font-weight:600;letter-spacing:3px;margin-bottom:6px}
+.login-sub{font-size:12px;color:#999;margin-bottom:28px}
+.login-btn{width:100%;padding:13px;border-radius:10px;border:0.5px solid #e0e0dc;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px;text-align:left}
+.login-note{font-size:11px;color:#ccc;margin-top:12px;text-align:center}
+.summary-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid #f5f5f3}
+.summary-row:last-child{border-bottom:none}
+.summary-shop{display:flex;align-items:center;gap:8px}
+.summary-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.supply-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #f5f5f3}
+.supply-item:last-child{border-bottom:none}
+/* 로딩/상태 */
+.loading{text-align:center;padding:24px;color:#999;font-size:13px}
+.sync-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:#e8f5e9;color:#2d7a3a}
+.sync-badge.err{background:#fce4ec;color:#c62828}
+.sync-badge.ing{background:#fff3e0;color:#e65100}
+.notice-write{background:#fff;border-radius:10px;border:0.5px solid #e0e0dc;padding:14px;margin-bottom:12px}
+.notice-write input,.notice-write select,.notice-write textarea{width:100%;padding:8px 10px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:13px;margin-bottom:8px;font-family:inherit;background:#fff}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// ===== 구글시트 연동 설정 =====
+const SHEET_ID='1edbXUumAW6vd5I_Oz8XPx8FYFfCHZDxjln92_H4NYVk';
+const API_KEY='AIzaSyCIDmzS2kNaGbPtaW8sZX7v3cpsChqZeW8';
+const BASE=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+
+const SHOPS=['도산','한남','서촌'];
+const SHOP_COLOR={도산:'#0277bd',한남:'#6a1b9a',서촌:'#2e7d32'};
+const SHOP_CLASS={도산:'dosan',한남:'hannam',서촌:'seochon'};
+
+const USERS=[
+  {email:'admin@gmail.com',name:'서보람',role:'관리자',showroom:'전체',initial:'보'},
+  {email:'dosan@gmail.com',name:'도산 매니저',role:'매니저',showroom:'도산',initial:'도'},
+  {email:'hannam@gmail.com',name:'한남 매니저',role:'매니저',showroom:'한남',initial:'한'},
+  {email:'seochon@gmail.com',name:'서촌 매니저',role:'매니저',showroom:'서촌',initial:'서'},
+  {email:'staff@gmail.com',name:'박미주',role:'스태프',showroom:'도산',initial:'미'},
+];
+
+const OPEN_CHECKS=[
+  '화분쪽 에어컨/히터 날개 닫기',
+  '바닥 전체 먼지 쓸고 정전기 부직포로 닦기 (피팅룸·창고·카운터 포함)',
+  '미니 카페트 먼지 털고 돌돌이로 제거',
+  '메인 테이블·장롱 안쪽 물티슈로 닦기',
+  '피팅룸 정리정돈 (문 열어두기)',
+  'DP 제품 정리·실밥·보풀 제거·스팀 처리',
+  'DP 제품 불량 확인 후 교체',
+  '거울·유리장·윈도우 윈덱스 + 마른수건',
+  '창고 및 서랍장 재고 정리',
+  '식물 물 주기 확인',
+  '스탭룩 촬영 및 공유 (일 3착장)',
+  '오픈 보고 (매장 사진 단체카톡 공유)',
+];
+const CLOSE_CHECKS=[
+  '포스 마감 확인 (노트북 off, 카드단말기 유지)',
+  '매출·방문객·특이사항·스탭룩 마감 보고',
+  '쓰레기·분리수거 내놓기 (평일만)',
+  '화장실 청소 및 전체 정리정돈',
+  '청소도구·비품 재고 체크',
+  '전체 불 off (스탠드·블루조명 별도)',
+  '현관 앞 거미줄 확인',
+];
+
+const CONTACTS=[
+  {name:'조미현 실장',role:'본사',phone:'010-7444-0229',color:'#1a1a1a'},
+  {name:'조윤경 과장',role:'본사',phone:'010-9259-5369',color:'#1a1a1a'},
+  {name:'본사 대표번호',role:'본사',phone:'070-8899-1489',color:'#1a1a1a'},
+  {name:'페이컴 팀장님',role:'단말기 A/S',phone:'010-3181-5162',color:'#0277bd'},
+  {name:'이지체인 정재우',role:'POS 지원',phone:'010-2855-1775',color:'#6a1b9a'},
+  {name:'세콤 담당자',role:'보안',phone:'010-9671-6294',color:'#2e7d32'},
+  {name:'박미주',role:'도산점',phone:'010-5062-2207',color:'#555'},
+  {name:'택스리펀 관리자',role:'택스리펀',phone:'010-9309-1206',color:'#555'},
+  {name:'카드용지 대리점',role:'소모품',phone:'02-470-3094',color:'#555'},
+  {name:'일신모닝 택배기사',role:'택배',phone:'010-2260-3751',color:'#555'},
+];
+
+const INV_SHELVES=[
+  {name:'우드장 1-1 (fritur)',items:['티셔츠류','스웻셔츠류','Acc류','bloom shirt','patchwork shirt','belted overall','지나정콜라보스커트·아일렛·볼륨·satin maxi·crochet maxi 스커트']},
+  {name:'우드장 1-2',items:['파머티','f253 제품들','아이콘볼캡','bloom sleeveless','the needle shirt','satin ribbon BL·dress류','피케셔츠·도트·엠브로더리드 스커트']},
+  {name:'우드장 2-1 (AND)',items:['허그티','패치워크 데님 스웻','pocket shirt']},
+  {name:'우드장 2-2',items:['플로팅티','가방류','트래블볼캡','daisy shirt','lace bustier dress']},
+  {name:'우드장 3-1 (hand crafts)',items:['블루버드티','키링·벨트']},
+  {name:'피팅룸옆 창고',items:['집기류','팬츠류','코쿤윈드브레이커','엠브로더리 웨스턴 윈드자켓','클로버윈드자켓']},
+  {name:'카운터 뒤쪽 창고',items:['종이백 (1·2층)','에이프런팬츠 베이지 M·L','페이드데님팬츠','커브드팬츠','교토카고팬츠','플레인데님','플랫티드팬츠','엠브로더리 데님팬츠','교토 카고스커트 차콜 M·L','지나정콜라보쇼츠']},
+];
+
+const SUPPLIES=[
+  {name:'쓰레기 봉투',qty:'40장'},{name:'투명 쓰레기 봉투',qty:'1개'},
+  {name:'윈덱스',qty:'반 통',warn:true},{name:'돌돌이 여분',qty:'9개'},
+  {name:'화장지',qty:'30개'},{name:'물티슈',qty:'1통 (마지막)',warn:true},
+  {name:'부직포',qty:'충분'},{name:'페이스 커버',qty:'충분'},
+  {name:'포장용 폴리백',qty:'충분'},{name:'쇼핑백 (중)',qty:'100장+'},
+  {name:'쇼핑백 (대)',qty:'6장',warn:true},{name:'주문서',qty:'충분'},
+  {name:'핸드 타올',qty:'충분'},{name:'블루 스티커',qty:'충분'},
+  {name:'샵카드',qty:'충분'},{name:'박스테이프',qty:'1개(신규)'},
+];
+
+// ===== 앱 상태 =====
+const S={
+  page:'login',user:null,navTab:'home',
+  activeShop:{sales:'도산',checklist:'도산',notice:'all'},
+  checks:{도산:{open:Array(12).fill(false),close:Array(7).fill(false)},한남:{open:Array(12).fill(false),close:Array(7).fill(false)},서촌:{open:Array(12).fill(false),close:Array(7).fill(false)}},
+  salesData:{도산:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},한남:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},서촌:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''}},
+  notices:[],noticesLoaded:false,
+  clockedIn:false,punchIn:null,punchOut:null,
+  subPage:null,syncStatus:'idle',
+  showNoticeForm:false,
+  newNotice:{target:'all',level:'notice',title:'',body:''},
+};
+
+// ===== 구글시트 API =====
+async function sheetGet(range){
+  const url=`${BASE}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error('시트 읽기 실패');
+  const d=await r.json();
+  return d.values||[];
+}
+
+async function sheetAppend(sheetName,values){
+  const url=`${BASE}/values/${encodeURIComponent(sheetName+'!A1')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&key=${API_KEY}`;
+  const r=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({values})
+  });
+  if(!r.ok)throw new Error('시트 저장 실패');
+  return r.json();
+}
+
+function today(){
+  const n=new Date();
+  return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())}`;
+}
+
+// ===== 전달사항 불러오기 =====
+async function loadNotices(){
+  try{
+    const rows=await sheetGet('전달사항!A2:F100');
+    S.notices=rows.map(r=>({
+      date:r[0]||'',target:r[1]||'all',badge:r[2]||'notice',
+      title:r[3]||'',body:r[4]||'',writer:r[5]||''
+    })).reverse();
+    S.noticesLoaded=true;
+  }catch(e){
+    S.notices=getDefaultNotices();
+    S.noticesLoaded=true;
+  }
+}
+
+function getDefaultNotices(){return[
+  {date:'최신',target:'all',badge:'urgent',title:'판매 불가 상품 안내',body:'• 교토카고팬츠: 리오더 중, DP판매·예약 불가\n• Button Long Sleeve T: 예약판매 불가\n• 교토 바지 카키색·프리 슬리브리스 티셔츠: DP판매 불가\n• 25 S/S 전체: DP판매 불가, 예약배송만 가능\n• 품절상품 주문불가 수시 확인'},
+  {date:'최신',target:'all',badge:'notice',title:'주요 업무 공지',body:'• 여름 신상품: 본사재고 20개 미만 주문 금지\n• 주문서: 두 장씩 떼서 작성\n• 이지체인 교환 시 추가결제 불가 → 영수증 취소 후 재결제'},
+  {date:'최신',target:'all',badge:'notice',title:'식물 물주기 안내',body:'• 부시측백·로즈마리: 4L 기준 3번, 일요일도 필수\n• 파키라: 열흘에 한 번\n• 분무기로 잎 수시 적시기'},
+];}
+
+// ===== 매출 저장 =====
+async function saveSales(shop){
+  const d=S.salesData[shop];
+  if(!d.total){alert('총 매출을 입력해주세요.');return;}
+  S.syncStatus='saving';
+  try{
+    const vis=parseInt(d.visitors)||0;
+    const buy=parseInt(d.buyers)||0;
+    const cvr=vis>0?Math.round(buy/vis*100)+'%':'';
+    await sheetAppend(`매출_${shop}`,[
+      [today(),d.total,d.card,d.terminal,d.transfer,d.cash,d.visitors,d.buyers,cvr,d.special,S.user.name]
+    ]);
+    S.syncStatus='done';
+    alert(`✅ ${shop}점 마감 보고가 구글시트에 저장되었습니다!`);
+  }catch(e){
+    S.syncStatus='err';
+    alert('저장 실패. 인터넷 연결을 확인해주세요.');
+  }
+}
+
+// ===== 체크리스트 저장 =====
+async function saveChecklist(shop,type,item,done){
+  try{
+    await sheetAppend(`체크리스트_${shop}`,[
+      [today(),type==='open'?'오픈':'마감',item,done?'완료':'취소',new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),S.user.name]
+    ]);
+  }catch(e){console.log('체크리스트 저장 실패',e);}
+}
+
+// ===== 출퇴근 저장 =====
+async function savePunch(type,time){
+  try{
+    if(type==='in'){
+      await sheetAppend('근무확인',[
+        [today(),S.user.name,S.user.showroom,time,'','']
+      ]);
+    }
+  }catch(e){console.log('출퇴근 저장 실패',e);}
+}
+
+// ===== 전달사항 저장 =====
+async function saveNotice(){
+  const n=S.newNotice;
+  if(!n.title||!n.body){alert('제목과 내용을 입력해주세요.');return;}
+  try{
+    await sheetAppend('전달사항',[
+      [today(),n.target,n.level,n.title,n.body,S.user.name]
+    ]);
+    S.newNotice={target:'all',level:'notice',title:'',body:''};
+    S.showNoticeForm=false;
+    S.noticesLoaded=false;
+    await loadNotices();
+    document.getElementById('mc').innerHTML=renderNotice();
+    alert('✅ 전달사항이 저장되었습니다!');
+  }catch(e){alert('저장 실패. 다시 시도해주세요.');}
+}
+
+// ===== 렌더링 =====
+function render(){
+  const app=document.getElementById('app');
+  if(S.page==='login'){app.innerHTML=renderLogin();return;}
+  app.innerHTML=`${renderHeader()}<div class="main" id="mc">${renderPage()}</div>${renderBottomNav()}`;
+  startClock();
+}
+
+function renderLogin(){return`
+<div class="login-wrap">
+  <div class="login-logo">FRITUR</div>
+  <div class="login-sub">쇼룸 관리 시스템</div>
+  ${USERS.map(u=>`<button class="login-btn" onclick="login('${u.email}')">
+    <i class="ti ti-user-circle" style="font-size:18px;color:#999"></i>
+    <div><div style="font-size:13px;font-weight:500">${u.name}</div><div style="font-size:11px;color:#999">${u.role} · ${u.showroom}</div></div>
+  </button>`).join('')}
+  <div class="login-note">※ 실제 운영 시 Google 계정 로그인</div>
+</div>`;}
+
+function login(e){
+  S.user=USERS.find(u=>u.email===e);
+  const shop=S.user.showroom==='전체'?'도산':S.user.showroom;
+  S.activeShop={sales:shop,checklist:shop,notice:'all'};
+  S.page='main';render();
+  loadNotices();
+}
+function logout(){S.page='login';S.user=null;S.noticesLoaded=false;render();}
+
+function renderHeader(){
+  const shop=S.user.showroom;
+  const cls=shop==='전체'?'badge-all':`badge-${SHOP_CLASS[shop]||'all'}`;
+  return`<div class="header">
+    <div class="header-logo">FRITUR</div>
+    <div class="header-right">
+      <span class="sync-badge ${S.syncStatus==='err'?'err':S.syncStatus==='saving'?'ing':''}">${S.syncStatus==='saving'?'저장중':S.syncStatus==='err'?'오류':'구글시트 연동'}</span>
+      <div class="showroom-badge ${cls}">${shop}</div>
+      <div class="user-avatar">${S.user.initial}</div>
+    </div>
+  </div>`;}
+
+function renderBottomNav(){
+  const tabs=[{id:'home',icon:'ti-home',label:'홈'},{id:'sales',icon:'ti-chart-bar',label:'매출'},{id:'checklist',icon:'ti-checkbox',label:'체크'},{id:'notice',icon:'ti-bell',label:'전달'},{id:'more',icon:'ti-dots',label:'더보기'}];
+  return`<div class="bottom-nav">${tabs.map(t=>`<button class="nav-item ${S.navTab===t.id?'active':''}" onclick="nav('${t.id}')"><i class="ti ${t.icon}"></i>${t.label}</button>`).join('')}</div>`;}
+
+function nav(t){S.navTab=t;S.subPage=null;document.getElementById('mc').innerHTML=renderPage();startClock();}
+
+function renderPage(){
+  switch(S.navTab){
+    case'home':return renderHome();
+    case'sales':return renderSales();
+    case'checklist':return renderChecklist();
+    case'notice':return renderNotice();
+    case'more':return S.subPage?renderSub():renderMore();
+  }
+}
+
+function isAdmin(){return S.user&&S.user.role==='관리자';}
+function userShop(){return S.user?S.user.showroom:'';}
+
+function shopTabsUI(page,active,includeAll){
+  const shops=isAdmin()?SHOPS:SHOPS.filter(s=>s===userShop());
+  if(shops.length===1&&!includeAll)return'';
+  const all=includeAll?`<div class="shop-tab ${active==='all'?'active-all':''}" onclick="setShopTab('${page}','all')">전체</div>`:'';
+  return`<div class="shop-tabs">${all}${shops.map(s=>`<div class="shop-tab ${active===s?`active-${SHOP_CLASS[s]}`:''}" onclick="setShopTab('${page}','${s}')">${s}</div>`).join('')}</div>`;}
+
+function setShopTab(page,shop){S.activeShop[page]=shop;document.getElementById('mc').innerHTML=renderPage();startClock();}
+
+function renderHome(){
+  const now=new Date();
+  const days=['일','월','화','수','목','금','토'];
+  const ds=`${now.getFullYear()}.${p2(now.getMonth()+1)}.${p2(now.getDate())} (${days[now.getDay()]})`;
+  if(isAdmin()){return`
+    <div class="page-title">안녕하세요, ${S.user.name}님</div>
+    <p style="font-size:12px;color:#999;margin:-10px 0 14px">${ds} · 전체 현황</p>
+    <div class="card"><div class="card-header"><div class="card-title">쇼룸별 오픈 체크</div></div><div class="card-body">
+      ${SHOPS.map(shop=>{
+        const done=S.checks[shop].open.filter(Boolean).length;
+        const total=OPEN_CHECKS.length;
+        const pct=Math.round(done/total*100);
+        return`<div class="summary-row">
+          <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[shop]}"></div><span style="font-size:13px;font-weight:500">${shop}점</span></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:80px;height:4px;background:#f0ede8;border-radius:4px"><div style="width:${pct}%;height:100%;background:${SHOP_COLOR[shop]};border-radius:4px"></div></div>
+            <span style="font-size:12px;color:#999;min-width:36px;text-align:right">${done}/${total}</span>
+          </div></div>`;}).join('')}
+    </div></div>
+    <div class="card"><div class="card-header"><div class="card-title">오늘 매출 현황</div></div><div class="card-body">
+      ${SHOPS.map(shop=>{const d=S.salesData[shop];return`
+      <div class="summary-row">
+        <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[shop]}"></div><span style="font-size:13px;font-weight:500">${shop}점</span></div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:600">${d.total?d.total+'원':'미입력'}</div>
+          ${d.visitors?`<div style="font-size:11px;color:#999">방문 ${d.visitors}명</div>`:''}
+        </div>
+      </div>`}).join('')}
+    </div></div>`;}
+
+  const shop=userShop();
+  const openDone=S.checks[shop].open.filter(Boolean).length;
+  const closeDone=S.checks[shop].close.filter(Boolean).length;
+  return`
+  <div class="page-title">안녕하세요, ${S.user.name}님</div>
+  <p style="font-size:12px;color:#999;margin:-10px 0 14px">${ds} · ${shop}점</p>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">오픈 체크</div>
+      <div class="stat-value">${openDone}<span style="font-size:13px;color:#999"> / ${OPEN_CHECKS.length}</span></div>
+      <div class="stat-sub ${openDone===OPEN_CHECKS.length?'stat-up':''}">${openDone===OPEN_CHECKS.length?'✓ 완료':'진행중'}</div>
+    </div>
+    <div class="stat-card"><div class="stat-label">마감 체크</div>
+      <div class="stat-value">${closeDone}<span style="font-size:13px;color:#999"> / ${CLOSE_CHECKS.length}</span></div>
+      <div class="stat-sub ${closeDone===CLOSE_CHECKS.length?'stat-up':''}">${closeDone===CLOSE_CHECKS.length?'✓ 완료':'진행중'}</div>
+    </div>
+  </div>
+  <div class="card"><div class="card-header"><div class="card-title">매장 현황 · ${shop}점</div></div><div class="card-body">
+    <div class="info-row"><div class="info-key">영업시간</div><div class="info-val">AM 11:00 – PM 7:00 (휴게 PM 2–3)</div></div>
+    <div class="info-row"><div class="info-key">정기휴무</div><div class="info-val">매주 월요일</div></div>
+  </div></div>
+  <div class="card"><div class="card-header"><div class="card-title">최신 전달사항</div>
+    <span style="font-size:11px;color:#0277bd;cursor:pointer" onclick="nav('notice')">전체보기</span>
+  </div><div class="card-body">
+    <div style="display:flex;align-items:center;gap:7px;padding:4px 0">
+      <span class="nbadge urgent">주의</span>
+      <span style="font-size:13px">판매 불가 상품 안내</span>
+    </div>
+  </div></div>`;}
+
+function renderSales(){
+  const shop=S.activeShop.sales;
+  const d=S.salesData[shop];
+  const vis=parseInt(d.visitors)||0;
+  const buy=parseInt(d.buyers)||0;
+  const cvr=vis>0?Math.round(buy/vis*100):0;
+  return`
+  <div class="page-title">매출 현황</div>
+  ${shopTabsUI('sales',shop,false)}
+  <div class="card"><div class="card-header">
+    <div class="card-title">${shop}점 · 오늘 매출</div>
+    <span style="font-size:11px;color:#999">이지어드민 확인 후 입력</span>
+  </div><div class="card-body">
+    ${[{key:'total',label:'총 매출'},{key:'card',label:'카드'},{key:'terminal',label:'단말기'},{key:'transfer',label:'계좌이체'},{key:'cash',label:'현금'}].map(f=>`
+    <div class="sales-input-row">
+      <div class="sales-input-label">${f.label}</div>
+      <input class="sales-input" type="text" placeholder="0원" value="${d[f.key]}" oninput="setSales('${shop}','${f.key}',this.value)">
+    </div>`).join('')}
+    <div class="sales-input-row"><div class="sales-input-label">방문객 수</div>
+      <input class="sales-input" type="text" placeholder="0명" value="${d.visitors}" oninput="setSales('${shop}','visitors',this.value)"></div>
+    <div class="sales-input-row"><div class="sales-input-label">구매객 수</div>
+      <input class="sales-input" type="text" placeholder="0명" value="${d.buyers}" oninput="setSales('${shop}','buyers',this.value)"></div>
+    ${vis>0?`<div class="sales-input-row"><div class="sales-input-label" style="color:#999">구매전환율</div>
+      <div style="font-size:13px;font-weight:600;color:${SHOP_COLOR[shop]}">${cvr}%</div></div>`:''}
+  </div></div>
+  <div class="card"><div class="card-header"><div class="card-title">특이사항</div></div><div class="card-body">
+    <textarea class="textarea" rows="3" placeholder="반품 사유 / 고객 문의 / 기타" oninput="setSales('${shop}','special',this.value)">${d.special}</textarea>
+  </div></div>
+  <button class="cta-btn" onclick="saveSales('${shop}')"><i class="ti ti-send"></i> ${shop}점 마감 보고 저장</button>
+  ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약</div></div><div class="card-body">
+    ${SHOPS.map(s=>{const sd=S.salesData[s];return`
+    <div class="summary-row">
+      <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[s]}"></div><span style="font-size:13px">${s}점</span></div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:600">${sd.total?sd.total+'원':'미입력'}</div>
+        ${sd.visitors?`<div style="font-size:11px;color:#999">방문 ${sd.visitors}명 / 구매 ${sd.buyers||0}명</div>`:''}
+      </div>
+    </div>`}).join('')}
+  </div></div>`:''}`;
+}
+function setSales(shop,key,val){S.salesData[shop][key]=val;}
+
+function renderChecklist(){
+  const shop=S.activeShop.checklist;
+  const chk=S.checks[shop];
+  return`
+  <div class="page-title">업무 체크리스트</div>
+  ${shopTabsUI('checklist',shop,false)}
+  <div class="card"><div class="card-header">
+    <div class="card-title">🌅 오픈 체크 · ${shop}점</div>
+    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.open.filter(Boolean).length} / ${OPEN_CHECKS.length}</span>
+  </div><div class="card-body">
+    ${OPEN_CHECKS.map((item,i)=>`
+    <div class="check-item" onclick="toggleCheck('${shop}','open',${i})">
+      <div class="check-box ${chk.open[i]?'done':''}">${chk.open[i]?'<i class="ti ti-check"></i>':''}</div>
+      <div class="check-label ${chk.open[i]?'done':''}">${item}</div>
+    </div>`).join('')}
+  </div></div>
+  <div class="card"><div class="card-header">
+    <div class="card-title">🌙 마감 체크 · ${shop}점</div>
+    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.close.filter(Boolean).length} / ${CLOSE_CHECKS.length}</span>
+  </div><div class="card-body">
+    ${CLOSE_CHECKS.map((item,i)=>`
+    <div class="check-item" onclick="toggleCheck('${shop}','close',${i})">
+      <div class="check-box ${chk.close[i]?'done':''}">${chk.close[i]?'<i class="ti ti-check"></i>':''}</div>
+      <div class="check-label ${chk.close[i]?'done':''}">${item}</div>
+    </div>`).join('')}
+  </div></div>
+  ${renderAttendance(shop)}`;}
+
+function renderAttendance(shop){
+  const now=new Date();
+  return`<div class="card"><div class="card-header"><div class="card-title">근무 확인 · ${shop}점</div></div><div class="card-body">
+    <div class="punch-wrap">
+      <div class="punch-time" id="clock">${p2(now.getHours())}:${p2(now.getMinutes())}</div>
+      <div class="punch-date">${S.punchIn?`출근 ${S.punchIn}${S.punchOut?' · 퇴근 '+S.punchOut:''}`:' 출근 기록 없음'}</div>
+      <button class="punch-btn ${S.clockedIn?'out':''}" onclick="punch()">${S.clockedIn?'퇴근 기록':'출근 기록'}</button>
+    </div>
+  </div></div>`;}
+
+async function toggleCheck(shop,type,i){
+  S.checks[shop][type][i]=!S.checks[shop][type][i];
+  const item=type==='open'?OPEN_CHECKS[i]:CLOSE_CHECKS[i];
+  document.getElementById('mc').innerHTML=renderChecklist();
+  startClock();
+  await saveChecklist(shop,type,item,S.checks[shop][type][i]);
+}
+
+async function punch(){
+  const now=new Date();
+  const t=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
+  if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
+  else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
+  document.getElementById('mc').innerHTML=renderChecklist();startClock();
+}
+
+function renderNotice(){
+  const active=S.activeShop.notice;
+  const notices=S.noticesLoaded?S.notices:getDefaultNotices();
+  const filtered=notices.filter(n=>active==='all'||n.target==='all'||n.target===active);
+  const badgeClass={urgent:'urgent',notice:'notice',dosan:'dosan',hannam:'hannam',seochon:'seochon'};
+  return`
+  <div class="page-title">전달사항</div>
+  ${shopTabsUI('notice',active,true)}
+  ${isAdmin()?`
+  <button class="cta-btn" style="margin-bottom:10px" onclick="toggleNoticeForm()">
+    <i class="ti ti-plus"></i> 전달사항 작성
+  </button>
+  ${S.showNoticeForm?`
+  <div class="notice-write">
+    <select onchange="S.newNotice.target=this.value">
+      <option value="all">전체 공지</option>
+      <option value="도산">도산점만</option>
+      <option value="한남">한남점만</option>
+      <option value="서촌">서촌점만</option>
+    </select>
+    <select onchange="S.newNotice.level=this.value">
+      <option value="notice">일반 공지</option>
+      <option value="urgent">긴급 주의</option>
+    </select>
+    <input type="text" placeholder="제목" oninput="S.newNotice.title=this.value">
+    <textarea rows="4" placeholder="내용" oninput="S.newNotice.body=this.value"></textarea>
+    <button class="cta-btn" onclick="saveNotice()"><i class="ti ti-send"></i> 저장 (구글시트에 반영)</button>
+    <button class="cta-btn sec" onclick="toggleNoticeForm()">취소</button>
+  </div>`:''}`:''}
+  <div class="card"><div class="card-body">
+    ${!S.noticesLoaded?`<div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`:
+    filtered.length?filtered.map(n=>`
+    <div class="notice-item">
+      <div class="notice-top">
+        <span class="nbadge ${badgeClass[n.badge]||'notice'}">${n.badge==='urgent'?'주의':n.badge==='notice'?'공지':n.target==='all'?'전체':n.target+'점'}</span>
+        <span class="notice-title">${n.title}</span>
+      </div>
+      <div class="notice-body">${(n.body||'').replace(/\n/g,'<br>')}</div>
+      <div class="notice-date">${n.date}${n.writer?' · '+n.writer:''}</div>
+    </div>`).join(''):`<div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">전달사항이 없습니다</div>`}
+  </div></div>`;}
+
+function toggleNoticeForm(){S.showNoticeForm=!S.showNoticeForm;document.getElementById('mc').innerHTML=renderNotice();}
+
+function renderMore(){
+  const menus=[
+    {id:'inv',icon:'ti-packages',title:'적재현황',sub:'도산점 우드장·창고 구성'},
+    {id:'manual',icon:'ti-book',title:'업무 매뉴얼',sub:'오픈·마감·고객응대'},
+    {id:'pos',icon:'ti-device-tablet',title:'포스 매뉴얼',sub:'이지체인 POS·개인결제창'},
+    {id:'contacts',icon:'ti-address-book',title:'연락망',sub:'본사·협력사·팀원'},
+    {id:'supply',icon:'ti-armchair',title:'비품리스트',sub:'도산점 재고 현황'},
+    {id:'orders',icon:'ti-truck-delivery',title:'고객 배송주문',sub:'이지어드민 확인 후 입력'},
+    {id:'wifi',icon:'ti-wifi',title:'Wi-Fi · 계좌 정보',sub:'매장 기본 정보'},
+  ];
+  return`
+  <div class="page-title">더보기</div>
+  <div class="card"><div class="card-body" style="padding:4px 16px">
+    ${menus.map(m=>`<div class="manual-item" onclick="showSub('${m.id}')">
+      <div class="manual-icon"><i class="ti ${m.icon}"></i></div>
+      <div><div class="manual-title">${m.title}</div><div class="manual-sub">${m.sub}</div></div>
+      <i class="ti ti-chevron-right" style="margin-left:auto;color:#ccc"></i>
+    </div>`).join('')}
+  </div></div>
+  <button class="cta-btn sec" onclick="logout()"><i class="ti ti-logout"></i> 로그아웃</button>`;}
+
+function showSub(id){S.subPage=id;document.getElementById('mc').innerHTML=renderSub();}
+
+function renderSub(){
+  const back=`<div class="back-row"><button class="back-btn" onclick="S.subPage=null;document.getElementById('mc').innerHTML=renderMore()"><i class="ti ti-arrow-left" style="font-size:20px"></i></button></div>`;
+  switch(S.subPage){
+    case'inv':return back+`<div class="page-title">적재현황 · 도산점</div>
+      <div class="inv-shelf">${INV_SHELVES.map(s=>`<div class="shelf-card"><div class="shelf-name">${s.name}</div>${s.items.map(i=>`<div class="shelf-item">${i}</div>`).join('')}</div>`).join('')}</div>`;
+    case'manual':return back+`<div class="page-title">업무 매뉴얼</div>
+      <div class="card"><div class="card-header"><div class="card-title">🌅 오픈 업무</div></div><div class="card-body">
+        <div class="section-label">조명 및 기기</div>
+        <p style="font-size:12px;color:#555;line-height:1.8">전체 조명 ON + 입구 스탠드 + 카운터 블루 조명 별도<br>노트북·포스·플레이리스트 ON / 화분쪽 히터 날개 닫기</p>
+        <div class="section-label">청소 순서</div>
+        <p style="font-size:12px;color:#555;line-height:1.8">① 바닥 전체 먼지 쓸기 → 정전기 부직포 닦기<br>② 미니 카페트 돌돌이<br>③ 메인 테이블·장롱 안쪽 물티슈<br>④ 피팅룸 정리 (문 열어두기)<br>⑤ DP 정리·실밥·보풀·스팀<br>⑥ 거울·유리 윈덱스 + 마른수건<br>⑦ 식물 물 주기<br>✔ 청소 완료 후 오픈 사진 단체카톡 공유</p>
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">🌙 마감 업무</div></div><div class="card-body">
+        <p style="font-size:12px;color:#555;line-height:1.8">• 전체 불 OFF (스탠드·블루 별도)<br>• 노트북·포스 OFF (단말기 유지)<br>• 쓰레기·분리수거 (평일만)<br>• 화장실 청소 및 전체 정리정돈<br>• 매출·방문객·특이사항·스탭룩 공유</p>
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">👋 고객 응대</div></div><div class="card-body">
+        <p style="font-size:12px;color:#555;line-height:1.8">① "안녕하세요. 프리터입니다."<br>② 편하게 둘러볼 수 있도록 안내<br>③ 망설이는 고객 사이즈·옵션 안내<br>④ 방문 경로·인스타 안내 (@friturday / @fritur_dosan)<br>• 이너 피팅 고객: 페이스 티슈 1장 (카운터 아래 흰상자)</p>
+      </div></div>`;
+    case'pos':return back+`<div class="page-title">포스 매뉴얼</div>
+      <div class="card"><div class="card-header"><div class="card-title">이지체인 POS</div></div><div class="card-body">
+        <div class="info-row"><div class="info-key">URL</div><div class="info-val"><a href="https://ecn5.ezadmin.co.kr/" target="_blank">ecn5.ezadmin.co.kr</a></div></div>
+        <div class="info-row"><div class="info-key">업체코드</div><div class="info-val">seo</div></div>
+        <div class="info-row"><div class="info-key">아이디</div><div class="info-val">seo2</div></div>
+        <div class="info-row"><div class="info-key">비밀번호</div><div class="info-val">1111</div></div>
+        <div class="info-row"><div class="info-key">지원 문의</div><div class="info-val">정재우 파트장 010-2855-1775</div></div>
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">⚠️ 교환 처리 주의</div></div><div class="card-body">
+        <p style="font-size:12px;color:#c62828;line-height:1.8;font-weight:500">이지체인 교환 시 추가금액 결제 불가<br>→ 영수증으로 취소 후 재결제 필수</p>
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">💳 개인결제창 생성</div></div><div class="card-body">
+        <div class="info-row"><div class="info-key">URL</div><div class="info-val"><a href="https://eclogin.cafe24.com/Shop/" target="_blank">eclogin.cafe24.com/Shop</a></div></div>
+        <div class="info-row"><div class="info-key">로그인</div><div class="info-val">ID: fritur / 부운영자: friturstore / PW: store123!</div></div>
+        <p style="font-size:12px;color:#555;line-height:1.8;margin-top:10px">① 상품등록 → 일반등록<br>② 분류: <span style="color:#c62828;font-weight:500">개인결제 선택 필수</span><br>③ 상품명: ○○○ 고객님 개인결제창<br>④ 결제금액 입력 → 등록<br>⑤ 쇼핑몰진열화면 → 링크 고객 전달</p>
+      </div></div>`;
+    case'contacts':return back+`<div class="page-title">연락망</div>
+      <div class="card"><div class="card-body">
+        ${CONTACTS.map(c=>`<div class="contact-row">
+          <div class="contact-avatar" style="background:${c.color}20;color:${c.color}">${c.name[0]}</div>
+          <div><div class="contact-name">${c.name}</div><div class="contact-role">${c.role}</div></div>
+          <div class="contact-actions">
+            <a class="cbtn" href="tel:${c.phone.replace(/-/g,'')}"><i class="ti ti-phone"></i></a>
+            <a class="cbtn" href="sms:${c.phone.replace(/-/g,'')}"><i class="ti ti-message"></i></a>
+          </div>
+        </div>`).join('')}
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">계좌번호</div></div><div class="card-body">
+        <div class="info-row"><div class="info-key">우리은행</div><div class="info-val">1005-204-611426 · (주)웨이퍼</div></div>
+      </div></div>`;
+    case'supply':return back+`<div class="page-title">비품리스트 · 도산점</div>
+      <div class="card"><div class="card-body">
+        ${SUPPLIES.map(s=>`<div class="supply-item">
+          <div style="font-size:13px;${s.warn?'color:#e65100':''}">${s.name}${s.warn?' ⚠️':''}</div>
+          <div style="font-size:13px;font-weight:600;color:${s.warn?'#e65100':'#1a1a1a'}">${s.qty}</div>
+        </div>`).join('')}
+      </div></div>
+      <button class="cta-btn sec" onclick="alert('비품 요청은 전달사항으로 본사에 전송해주세요.')"><i class="ti ti-send"></i> 본사에 비품 요청</button>`;
+    case'orders':return back+`<div class="page-title">고객 배송주문</div>
+      <p style="font-size:12px;color:#999;margin:-10px 0 12px">이지어드민 확인 후 직접 입력</p>
+      <button class="cta-btn" onclick="alert('구글시트 배송주문 탭에 직접 입력해주세요.')"><i class="ti ti-external-link"></i> 구글시트에서 입력</button>
+      <div class="card"><div class="card-body">
+        <div class="info-row"><div class="info-key">시트 URL</div><div class="info-val"><a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}" target="_blank">구글시트 배송주문 탭 열기</a></div></div>
+      </div></div>`;
+    case'wifi':return back+`<div class="page-title">Wi-Fi · 매장 정보</div>
+      <div class="wifi-box">
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px"><i class="ti ti-wifi" style="font-size:14px;margin-right:6px"></i>KT_WiFi_5G_6CBB</div>
+        <div style="font-size:12px;color:#555">암호: 0he50kx712</div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">매장 기본 정보</div></div><div class="card-body">
+        <div class="info-row"><div class="info-key">노트북 PW</div><div class="info-val">2024</div></div>
+        <div class="info-row"><div class="info-key">매장 전화</div><div class="info-val"><a href="tel:07088651489">070-8865-1489</a></div></div>
+        <div class="info-row"><div class="info-key">주소</div><div class="info-val">서울 강남구 언주로164길 38 1층</div></div>
+        <div class="info-row"><div class="info-key">인스타</div><div class="info-val">@friturday / @fritur_dosan</div></div>
+      </div></div>
+      <div class="card"><div class="card-header"><div class="card-title">이지어드민</div></div><div class="card-body">
+        <div class="info-row"><div class="info-key">URL</div><div class="info-val"><a href="https://ga76.ezadmin.co.kr/index.htm" target="_blank">ga76.ezadmin.co.kr</a></div></div>
+        <div class="info-row"><div class="info-key">아이디</div><div class="info-val">seo / friturdosan</div></div>
+      </div></div>`;
+  }
+}
+
+function p2(n){return String(n).padStart(2,'0');}
+function startClock(){
+  clearInterval(window._clk);
+  window._clk=setInterval(()=>{
+    const el=document.getElementById('clock');
+    if(!el){clearInterval(window._clk);return;}
+    const now=new Date();el.textContent=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
+  },1000);
+}
+render();
+</script>
+</body>
+</html>
