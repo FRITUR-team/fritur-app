@@ -215,6 +215,11 @@ const S={
   subPage:null,syncStatus:'idle',
   showNoticeForm:false,
   newNotice:{target:'all',level:'notice',title:'',body:''},
+  salesView:'input',
+  salesHistory:{도산:[],한남:[],서촌:[]},
+  salesHistoryLoaded:{도산:false,한남:false,서촌:false},
+  monthlyTarget:{도산:'',한남:'',서촌:''},
+  targetLoaded:{도산:false,한남:false,서촌:false},
 };
 
 // ===== 구글시트 API =====
@@ -240,6 +245,47 @@ async function sheetAppend(sheetName,values){
 function today(){
   const n=new Date();
   return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())}`;
+}
+
+// ===== 매출 이력 불러오기 =====
+function parseNum(v){
+  if(!v)return 0;
+  return parseInt(String(v).replace(/[^0-9]/g,''))||0;
+}
+
+async function loadSalesHistory(shop){
+  try{
+    const rows=await sheetGet(`매출_${shop}!A2:K1000`);
+    S.salesHistory[shop]=rows.filter(r=>r[0]).map(r=>({
+      date:r[0]||'',total:parseNum(r[1]),card:parseNum(r[2]),terminal:parseNum(r[3]),
+      transfer:parseNum(r[4]),cash:parseNum(r[5]),visitors:parseNum(r[6]),buyers:parseNum(r[7]),
+      cvr:r[8]||'',special:r[9]||'',writer:r[10]||''
+    }));
+    S.salesHistoryLoaded[shop]=true;
+  }catch(e){
+    S.salesHistory[shop]=[];
+    S.salesHistoryLoaded[shop]=true;
+  }
+}
+
+function getMonthKey(dateStr){
+  // 날짜형식 YYYY.MM.DD
+  const p=dateStr.split('.');
+  return p.length>=2?`${p[0]}.${p[1]}`:dateStr;
+}
+
+function groupByMonth(history){
+  const groups={};
+  history.forEach(h=>{
+    const mk=getMonthKey(h.date);
+    if(!groups[mk])groups[mk]={total:0,visitors:0,buyers:0,days:0,items:[]};
+    groups[mk].total+=h.total;
+    groups[mk].visitors+=h.visitors;
+    groups[mk].buyers+=h.buyers;
+    groups[mk].days+=1;
+    groups[mk].items.push(h);
+  });
+  return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
 }
 
 // ===== 전달사항 불러오기 =====
@@ -268,6 +314,7 @@ async function saveSales(shop){
   const d=S.salesData[shop];
   if(!d.total){alert('총 매출을 입력해주세요.');return;}
   S.syncStatus='saving';
+  document.getElementById('mc').innerHTML=renderSales();
   try{
     const vis=parseInt(d.visitors)||0;
     const buy=parseInt(d.buyers)||0;
@@ -276,11 +323,13 @@ async function saveSales(shop){
       [today(),d.total,d.card,d.terminal,d.transfer,d.cash,d.visitors,d.buyers,cvr,d.special,S.user.name]
     ]);
     S.syncStatus='done';
+    S.salesHistoryLoaded[shop]=false;
     alert(`✅ ${shop}점 마감 보고가 구글시트에 저장되었습니다!`);
   }catch(e){
     S.syncStatus='err';
     alert('저장 실패. 인터넷 연결을 확인해주세요.');
   }
+  document.getElementById('mc').innerHTML=renderSales();
 }
 
 // ===== 체크리스트 저장 =====
@@ -448,26 +497,58 @@ function renderHome(){
 
 function renderSales(){
   const shop=S.activeShop.sales;
+  return`
+  <div class="page-title">매출 현황</div>
+  ${shopTabsUI('sales',shop,false)}
+  <div class="shop-tabs" style="margin-bottom:14px">
+    <div class="shop-tab ${S.salesView==='input'?'active-all':''}" onclick="setSalesView('input')">입력</div>
+    <div class="shop-tab ${S.salesView==='daily'?'active-all':''}" onclick="setSalesView('daily')">일별</div>
+    <div class="shop-tab ${S.salesView==='monthly'?'active-all':''}" onclick="setSalesView('monthly')">월별</div>
+  </div>
+  ${S.salesView==='input'?renderSalesInput(shop):S.salesView==='daily'?renderSalesDaily(shop):renderSalesMonthly(shop)}`;
+}
+
+function setSalesView(v){
+  S.salesView=v;
+  const shop=S.activeShop.sales;
+  if((v==='daily'||v==='monthly')&&!S.salesHistoryLoaded[shop]){
+    document.getElementById('mc').innerHTML=`<div class="page-title">매출 현황</div><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`;
+    loadSalesHistory(shop).then(()=>{document.getElementById('mc').innerHTML=renderSales();});
+  }else{
+    document.getElementById('mc').innerHTML=renderSales();
+  }
+}
+
+function renderSalesInput(shop){
   const d=S.salesData[shop];
   const vis=parseInt(d.visitors)||0;
   const buy=parseInt(d.buyers)||0;
   const cvr=vis>0?Math.round(buy/vis*100):0;
   return`
-  <div class="page-title">매출 현황</div>
-  ${shopTabsUI('sales',shop,false)}
   <div class="card"><div class="card-header">
     <div class="card-title">${shop}점 · 오늘 매출</div>
     <span style="font-size:11px;color:#999">이지어드민 확인 후 입력</span>
   </div><div class="card-body">
-    ${[{key:'total',label:'총 매출'},{key:'card',label:'카드'},{key:'terminal',label:'단말기'},{key:'transfer',label:'계좌이체'},{key:'cash',label:'현금'}].map(f=>`
+    ${[{key:'total',label:'총 매출',unit:'원'},{key:'card',label:'카드',unit:'원'},{key:'terminal',label:'단말기',unit:'원'},{key:'transfer',label:'계좌이체',unit:'원'},{key:'cash',label:'현금',unit:'원'}].map(f=>`
     <div class="sales-input-row">
       <div class="sales-input-label">${f.label}</div>
-      <input class="sales-input" type="text" placeholder="0원" value="${d[f.key]}" oninput="setSales('${shop}','${f.key}',this.value)">
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d[f.key]}" oninput="setSales('${shop}','${f.key}',this.value)">
+        <span style="font-size:12px;color:#999;width:14px">${f.unit}</span>
+      </div>
     </div>`).join('')}
     <div class="sales-input-row"><div class="sales-input-label">방문객 수</div>
-      <input class="sales-input" type="text" placeholder="0명" value="${d.visitors}" oninput="setSales('${shop}','visitors',this.value)"></div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.visitors}" oninput="setSales('${shop}','visitors',this.value)">
+        <span style="font-size:12px;color:#999;width:14px">명</span>
+      </div>
+    </div>
     <div class="sales-input-row"><div class="sales-input-label">구매객 수</div>
-      <input class="sales-input" type="text" placeholder="0명" value="${d.buyers}" oninput="setSales('${shop}','buyers',this.value)"></div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.buyers}" oninput="setSales('${shop}','buyers',this.value)">
+        <span style="font-size:12px;color:#999;width:14px">명</span>
+      </div>
+    </div>
     ${vis>0?`<div class="sales-input-row"><div class="sales-input-label" style="color:#999">구매전환율</div>
       <div style="font-size:13px;font-weight:600;color:${SHOP_COLOR[shop]}">${cvr}%</div></div>`:''}
   </div></div>
@@ -475,18 +556,72 @@ function renderSales(){
     <textarea class="textarea" rows="3" placeholder="반품 사유 / 고객 문의 / 기타" oninput="setSales('${shop}','special',this.value)">${d.special}</textarea>
   </div></div>
   <button class="cta-btn" onclick="saveSales('${shop}')"><i class="ti ti-send"></i> ${shop}점 마감 보고 저장</button>
-  ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약</div></div><div class="card-body">
+  ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약 (오늘 입력값)</div></div><div class="card-body">
     ${SHOPS.map(s=>{const sd=S.salesData[s];return`
     <div class="summary-row">
       <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[s]}"></div><span style="font-size:13px">${s}점</span></div>
       <div style="text-align:right">
-        <div style="font-size:13px;font-weight:600">${sd.total?sd.total+'원':'미입력'}</div>
+        <div style="font-size:13px;font-weight:600">${sd.total?formatWon(sd.total):'미입력'}</div>
         ${sd.visitors?`<div style="font-size:11px;color:#999">방문 ${sd.visitors}명 / 구매 ${sd.buyers||0}명</div>`:''}
       </div>
     </div>`}).join('')}
   </div></div>`:''}`;
 }
-function setSales(shop,key,val){S.salesData[shop][key]=val;}
+
+function formatWon(v){
+  const n=parseNum(v);
+  return n.toLocaleString('ko-KR')+'원';
+}
+
+function renderSalesDaily(shop){
+  const history=S.salesHistory[shop]||[];
+  if(!history.length){
+    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다<br>"입력" 탭에서 마감 보고를 저장해주세요</div></div></div>`;
+  }
+  const sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
+  return`
+  <div class="card"><div class="card-header">
+    <div class="card-title">${shop}점 · 일별 매출</div>
+    <span style="font-size:11px;color:#999">최근 ${sorted.length}건</span>
+  </div><div class="card-body">
+    ${sorted.map(h=>`
+    <div class="summary-row" style="align-items:flex-start">
+      <div>
+        <div style="font-size:13px;font-weight:500">${h.date}</div>
+        ${h.visitors?`<div style="font-size:11px;color:#999;margin-top:2px">방문 ${h.visitors}명 · 구매 ${h.buyers}명${h.cvr?' · 전환율 '+h.cvr:''}</div>`:''}
+        ${h.special?`<div style="font-size:11px;color:#c62828;margin-top:2px">${h.special}</div>`:''}
+      </div>
+      <div style="font-size:14px;font-weight:600;color:${SHOP_COLOR[shop]}">${h.total.toLocaleString('ko-KR')}원</div>
+    </div>`).join('')}
+  </div></div>`;
+}
+
+function renderSalesMonthly(shop){
+  const history=S.salesHistory[shop]||[];
+  if(!history.length){
+    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
+  }
+  const grouped=groupByMonth(history);
+  return`
+  <div class="card"><div class="card-header">
+    <div class="card-title">${shop}점 · 월별 매출</div>
+  </div><div class="card-body">
+    ${grouped.map(([month,g])=>{
+      const avg=g.days>0?Math.round(g.total/g.days):0;
+      const cvr=g.visitors>0?Math.round(g.buyers/g.visitors*100):0;
+      return`
+      <div class="summary-row" style="align-items:flex-start">
+        <div>
+          <div style="font-size:13px;font-weight:600">${month}</div>
+          <div style="font-size:11px;color:#999;margin-top:2px">${g.days}일 입력 · 일평균 ${avg.toLocaleString('ko-KR')}원</div>
+          ${g.visitors?`<div style="font-size:11px;color:#999">방문 ${g.visitors}명 · 전환율 ${cvr}%</div>`:''}
+        </div>
+        <div style="font-size:16px;font-weight:700;color:${SHOP_COLOR[shop]}">${g.total.toLocaleString('ko-KR')}원</div>
+      </div>`;}).join('')}
+  </div></div>`;
+}
+
+function setSales(shop,key,val){S.salesData[shop][key]=val.replace(/[^0-9]/g,'');}
 
 function renderChecklist(){
   const shop=S.activeShop.checklist;
