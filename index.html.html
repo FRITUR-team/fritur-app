@@ -133,6 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const SHEET_ID='1edbXUumAW6vd5I_Oz8XPx8FYFfCHZDxjln92_H4NYVk';
 const API_KEY='AIzaSyCIDmzS2kNaGbPtaW8sZX7v3cpsChqZeW8';
 const BASE=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzWa25xvDX-ss3YvYO6gl8e-jLgtRYsM0n1aMBBrUERVV1gfOrIgmrpq2VnikPbo87_/exec';
 
 const SHOPS=['도산','한남','서촌'];
 const SHOP_COLOR={도산:'#0277bd',한남:'#6a1b9a',서촌:'#2e7d32'};
@@ -218,8 +219,11 @@ const S={
   salesView:'input',
   salesHistory:{도산:[],한남:[],서촌:[]},
   salesHistoryLoaded:{도산:false,한남:false,서촌:false},
-  monthlyTarget:{도산:'',한남:'',서촌:''},
+  monthlyTarget:{도산:'50000000',한남:'50000000',서촌:'50000000'},
   targetLoaded:{도산:false,한남:false,서촌:false},
+  checklistView:'check',
+  attendanceHistory:{도산:[],한남:[],서촌:[]},
+  attendanceLoaded:{도산:false,한남:false,서촌:false},
 };
 
 // ===== 구글시트 API =====
@@ -232,14 +236,16 @@ async function sheetGet(range){
 }
 
 async function sheetAppend(sheetName,values){
-  const url=`${BASE}/values/${encodeURIComponent(sheetName+'!A1')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&key=${API_KEY}`;
-  const r=await fetch(url,{
+  // Apps Script 웹앱을 통해 저장 (CORS 우회, 쓰기 권한 확보)
+  const r=await fetch(APPS_SCRIPT_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({values})
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({sheet:sheetName,values:values[0]})
   });
-  if(!r.ok)throw new Error('시트 저장 실패');
-  return r.json();
+  let result;
+  try{result=await r.json();}catch(e){throw new Error('서버 응답 오류: '+(await r.text()).slice(0,200));}
+  if(!result.success){throw new Error(result.error||'알 수 없는 오류');}
+  return result;
 }
 
 function today(){
@@ -251,6 +257,11 @@ function today(){
 function parseNum(v){
   if(!v)return 0;
   return parseInt(String(v).replace(/[^0-9]/g,''))||0;
+}
+
+function formatComma(v){
+  const n=parseNum(v);
+  return n>0?n.toLocaleString('ko-KR'):'';
 }
 
 async function loadSalesHistory(shop){
@@ -283,6 +294,87 @@ function groupByMonth(history){
     groups[mk].visitors+=h.visitors;
     groups[mk].buyers+=h.buyers;
     groups[mk].days+=1;
+    groups[mk].items.push(h);
+  });
+  return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
+}
+
+// ===== 목표매출 =====
+function currentMonthKey(){
+  const n=new Date();
+  return`${n.getFullYear()}.${p2(n.getMonth()+1)}`;
+}
+
+async function loadTarget(shop){
+  try{
+    const rows=await sheetGet('목표매출!A2:C200');
+    const mk=currentMonthKey();
+    const row=rows.find(r=>r[0]===shop&&r[1]===mk);
+    S.monthlyTarget[shop]=row?row[2]:'50000000';
+    S.targetLoaded[shop]=true;
+  }catch(e){
+    S.monthlyTarget[shop]='50000000';
+    S.targetLoaded[shop]=true;
+  }
+}
+
+async function saveTarget(shop){
+  const val=S.monthlyTarget[shop];
+  if(!val){alert('목표 매출을 입력해주세요.');return;}
+  try{
+    await sheetAppend('목표매출',[[shop,currentMonthKey(),val,S.user.name]]);
+    alert(`✅ ${shop}점 ${currentMonthKey()} 목표매출이 저장되었습니다!`);
+    document.getElementById('mc').innerHTML=renderSales();
+  }catch(e){
+    alert('저장 실패. "목표매출" 탭이 구글시트에 있는지 확인해주세요.\n(시트 하단 + 눌러 "목표매출" 탭 추가: 쇼룸/월/목표금액/작성자 헤더)');
+  }
+}
+
+function setTarget(shop,val){S.monthlyTarget[shop]=val.replace(/[^0-9]/g,'');}
+
+// ===== 출퇴근 이력 =====
+async function loadAttendance(shop){
+  try{
+    const rows=await sheetGet('근무확인!A2:F1000');
+    const filtered=rows.filter(r=>r[2]===shop&&r[0]);
+    // 날짜+이름 기준으로 출근/퇴근 합치기
+    const byKey={};
+    filtered.forEach(r=>{
+      const key=r[0]+'_'+r[1];
+      if(!byKey[key])byKey[key]={date:r[0],name:r[1],in:'',out:''};
+      if(r[3])byKey[key].in=byKey[key].in?byKey[key].in:r[3];
+      if(r[4])byKey[key].out=r[4];
+    });
+    S.attendanceHistory[shop]=Object.values(byKey).sort((a,b)=>b.date.localeCompare(a.date));
+    S.attendanceLoaded[shop]=true;
+  }catch(e){
+    S.attendanceHistory[shop]=[];
+    S.attendanceLoaded[shop]=true;
+  }
+}
+
+function workMinutes(inT,outT){
+  if(!inT||!outT)return null;
+  const[ih,im]=inT.split(':').map(Number);
+  const[oh,om]=outT.split(':').map(Number);
+  if(isNaN(ih)||isNaN(oh))return null;
+  return(oh*60+om)-(ih*60+im);
+}
+
+function fmtMinutes(mins){
+  if(mins===null)return'-';
+  const h=Math.floor(mins/60),m=mins%60;
+  return`${h}시간${m>0?' '+m+'분':''}`;
+}
+
+function groupAttendanceByMonth(history){
+  const groups={};
+  history.forEach(h=>{
+    const mk=getMonthKey(h.date);
+    if(!groups[mk])groups[mk]={days:0,totalMin:0,items:[]};
+    groups[mk].days+=1;
+    const mins=workMinutes(h.in,h.out);
+    if(mins!==null)groups[mk].totalMin+=mins;
     groups[mk].items.push(h);
   });
   return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
@@ -327,7 +419,7 @@ async function saveSales(shop){
     alert(`✅ ${shop}점 마감 보고가 구글시트에 저장되었습니다!`);
   }catch(e){
     S.syncStatus='err';
-    alert('저장 실패. 인터넷 연결을 확인해주세요.');
+    alert('저장 실패:\n'+e.message+'\n\n[원인 안내]\n- API 키만으로는 시트 "쓰기"가 안 되는 경우가 많습니다 (읽기는 API키, 쓰기는 OAuth 또는 Apps Script 웹앱이 필요)\n- 시트 공유 설정이 "편집자"인지 확인해주세요');
   }
   document.getElementById('mc').innerHTML=renderSales();
 }
@@ -344,11 +436,9 @@ async function saveChecklist(shop,type,item,done){
 // ===== 출퇴근 저장 =====
 async function savePunch(type,time){
   try{
-    if(type==='in'){
-      await sheetAppend('근무확인',[
-        [today(),S.user.name,S.user.showroom,time,'','']
-      ]);
-    }
+    await sheetAppend('근무확인',[
+      [today(),S.user.name,S.user.showroom,type==='in'?time:'',type==='out'?time:'','']
+    ]);
   }catch(e){console.log('출퇴근 저장 실패',e);}
 }
 
@@ -511,9 +601,14 @@ function renderSales(){
 function setSalesView(v){
   S.salesView=v;
   const shop=S.activeShop.sales;
-  if((v==='daily'||v==='monthly')&&!S.salesHistoryLoaded[shop]){
+  const needsHistory=(v==='daily'||v==='monthly')&&!S.salesHistoryLoaded[shop];
+  const needsTarget=(v==='monthly')&&!S.targetLoaded[shop];
+  if(needsHistory||needsTarget){
     document.getElementById('mc').innerHTML=`<div class="page-title">매출 현황</div><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`;
-    loadSalesHistory(shop).then(()=>{document.getElementById('mc').innerHTML=renderSales();});
+    Promise.all([
+      needsHistory?loadSalesHistory(shop):Promise.resolve(),
+      needsTarget?loadTarget(shop):Promise.resolve()
+    ]).then(()=>{document.getElementById('mc').innerHTML=renderSales();});
   }else{
     document.getElementById('mc').innerHTML=renderSales();
   }
@@ -533,7 +628,7 @@ function renderSalesInput(shop){
     <div class="sales-input-row">
       <div class="sales-input-label">${f.label}</div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d[f.key]}" oninput="setSales('${shop}','${f.key}',this.value)">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${formatComma(d[f.key])}" oninput="setSales('${shop}','${f.key}',this.value)">
         <span style="font-size:12px;color:#999;width:14px">${f.unit}</span>
       </div>
     </div>`).join('')}
@@ -598,21 +693,52 @@ function renderSalesDaily(shop){
 
 function renderSalesMonthly(shop){
   const history=S.salesHistory[shop]||[];
+  const target=parseNum(S.monthlyTarget[shop]);
+  const targetInputHtml=`
+  <div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 매출</div></div><div class="card-body">
+    <div class="sales-input-row">
+      <div class="sales-input-label">이번 달 목표</div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${S.monthlyTarget[shop]}" oninput="setTarget('${shop}',this.value)">
+        <span style="font-size:12px;color:#999;width:14px">원</span>
+      </div>
+    </div>
+    <button class="cta-btn sec" style="margin-top:8px" onclick="saveTarget('${shop}')"><i class="ti ti-target-arrow"></i> 목표 저장</button>
+  </div></div>`;
+
   if(!history.length){
-    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
+    return targetInputHtml+`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
   }
   const grouped=groupByMonth(history);
+  const thisMonthEntry=grouped.find(([m])=>m===currentMonthKey());
+  const thisMonthTotal=thisMonthEntry?thisMonthEntry[1].total:0;
+  const pct=target>0?Math.min(999,Math.round(thisMonthTotal/target*100)):0;
+
   return`
+  ${targetInputHtml}
+  ${target>0?`
+  <div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 달성률</div></div><div class="card-body">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font-size:22px;font-weight:700;color:${SHOP_COLOR[shop]}">${pct}%</span>
+      <span style="font-size:12px;color:#999">${thisMonthTotal.toLocaleString('ko-KR')}원 / ${target.toLocaleString('ko-KR')}원</span>
+    </div>
+    <div style="width:100%;height:8px;background:#f0ede8;border-radius:6px;overflow:hidden">
+      <div style="width:${Math.min(100,pct)}%;height:100%;background:${SHOP_COLOR[shop]};border-radius:6px;transition:width .3s"></div>
+    </div>
+    ${pct>=100?`<div style="font-size:12px;color:#2d7a3a;margin-top:6px;font-weight:500">🎉 목표 달성!</div>`:
+    `<div style="font-size:12px;color:#999;margin-top:6px">목표까지 ${(target-thisMonthTotal).toLocaleString('ko-KR')}원 남음</div>`}
+  </div></div>`:''}
   <div class="card"><div class="card-header">
     <div class="card-title">${shop}점 · 월별 매출</div>
   </div><div class="card-body">
     ${grouped.map(([month,g])=>{
       const avg=g.days>0?Math.round(g.total/g.days):0;
       const cvr=g.visitors>0?Math.round(g.buyers/g.visitors*100):0;
+      const isThisMonth=month===currentMonthKey();
       return`
       <div class="summary-row" style="align-items:flex-start">
         <div>
-          <div style="font-size:13px;font-weight:600">${month}</div>
+          <div style="font-size:13px;font-weight:600">${month}${isThisMonth?' (이번달)':''}</div>
           <div style="font-size:11px;color:#999;margin-top:2px">${g.days}일 입력 · 일평균 ${avg.toLocaleString('ko-KR')}원</div>
           ${g.visitors?`<div style="font-size:11px;color:#999">방문 ${g.visitors}명 · 전환율 ${cvr}%</div>`:''}
         </div>
@@ -625,10 +751,30 @@ function setSales(shop,key,val){S.salesData[shop][key]=val.replace(/[^0-9]/g,'')
 
 function renderChecklist(){
   const shop=S.activeShop.checklist;
-  const chk=S.checks[shop];
   return`
   <div class="page-title">업무 체크리스트</div>
   ${shopTabsUI('checklist',shop,false)}
+  <div class="shop-tabs" style="margin-bottom:14px">
+    <div class="shop-tab ${S.checklistView==='check'?'active-all':''}" onclick="setChecklistView('check')">체크리스트</div>
+    <div class="shop-tab ${S.checklistView==='attendance'?'active-all':''}" onclick="setChecklistView('attendance')">출퇴근 기록</div>
+  </div>
+  ${S.checklistView==='check'?renderChecklistMain(shop):renderAttendanceHistory(shop)}`;
+}
+
+function setChecklistView(v){
+  S.checklistView=v;
+  const shop=S.activeShop.checklist;
+  if(v==='attendance'&&!S.attendanceLoaded[shop]){
+    document.getElementById('mc').innerHTML=`<div class="page-title">업무 체크리스트</div><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`;
+    loadAttendance(shop).then(()=>{document.getElementById('mc').innerHTML=renderChecklist();});
+  }else{
+    document.getElementById('mc').innerHTML=renderChecklist();
+  }
+}
+
+function renderChecklistMain(shop){
+  const chk=S.checks[shop];
+  return`
   <div class="card"><div class="card-header">
     <div class="card-title">🌅 오픈 체크 · ${shop}점</div>
     <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.open.filter(Boolean).length} / ${OPEN_CHECKS.length}</span>
@@ -649,7 +795,32 @@ function renderChecklist(){
       <div class="check-label ${chk.close[i]?'done':''}">${item}</div>
     </div>`).join('')}
   </div></div>
-  ${renderAttendance(shop)}`;}
+  ${renderAttendance(shop)}`;
+}
+
+function renderAttendanceHistory(shop){
+  const history=S.attendanceHistory[shop]||[];
+  if(!history.length){
+    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">출퇴근 기록이 없습니다<br>"체크리스트" 탭에서 출근/퇴근 버튼을 눌러주세요</div></div></div>`;
+  }
+  const grouped=groupAttendanceByMonth(history);
+  return grouped.map(([month,g])=>`
+    <div class="card"><div class="card-header">
+      <div class="card-title">${month}${month===currentMonthKey()?' (이번달)':''}</div>
+      <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${g.days}일 근무</span>
+    </div><div class="card-body">
+      ${g.items.map(h=>{
+        const mins=workMinutes(h.in,h.out);
+        return`<div class="attend-row">
+          <div class="attend-av" style="background:${SHOP_COLOR[shop]}20;color:${SHOP_COLOR[shop]}">${h.name[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${h.name} <span style="color:#999;font-weight:400">· ${h.date.split('.').slice(1).join('.')}</span></div>
+            <div style="font-size:11px;color:#999">출근 ${h.in||'-'} · 퇴근 ${h.out||'-'}${mins!==null?' · '+fmtMinutes(mins):''}</div>
+          </div>
+          <span class="abadge ${h.out?'ab-in':'ab-late'}">${h.out?'완료':'근무중'}</span>
+        </div>`;}).join('')}
+    </div></div>`).join('');
+}
 
 function renderAttendance(shop){
   const now=new Date();
@@ -674,6 +845,7 @@ async function punch(){
   const t=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
   if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
   else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
+  S.attendanceLoaded[S.user.showroom]=false;
   document.getElementById('mc').innerHTML=renderChecklist();startClock();
 }
 
