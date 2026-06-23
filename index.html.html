@@ -83,6 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .punch-date{font-size:12px;color:#999;margin-bottom:14px}
 .punch-btn{padding:12px 32px;border-radius:30px;border:none;background:#1a1a1a;color:#fff;font-size:13px;font-weight:500;cursor:pointer}
 .punch-btn.out{background:#fff;border:1.5px solid #1a1a1a;color:#1a1a1a}
+.punch-btn:disabled{opacity:.4}
 .attend-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #f5f5f3}
 .attend-row:last-child{border-bottom:none}
 .attend-av{width:30px;height:30px;border-radius:50%;background:#f0ede8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
@@ -99,6 +100,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sales-input-row:last-child{border-bottom:none}
 .sales-input-label{font-size:13px;flex:1}
 .sales-input{width:100px;padding:6px 8px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:13px;text-align:right;background:#fff}
+.sales-input:disabled{background:#f5f5f3;color:#999}
+.sales-input.readonly-total{background:#f0ede8;font-weight:600}
 .textarea{width:100%;padding:8px 10px;border:0.5px solid #e0e0dc;border-radius:8px;font-size:12px;resize:none;font-family:inherit;line-height:1.6;background:#fff}
 .inv-shelf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .shelf-card{background:#f9f8f6;border-radius:8px;padding:10px;border:0.5px solid #e8e6e0}
@@ -117,13 +120,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .summary-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .supply-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #f5f5f3}
 .supply-item:last-child{border-bottom:none}
-/* 로딩/상태 */
 .loading{text-align:center;padding:24px;color:#999;font-size:13px}
 .sync-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:#e8f5e9;color:#2d7a3a}
 .sync-badge.err{background:#fce4ec;color:#c62828}
 .sync-badge.ing{background:#fff3e0;color:#e65100}
 .notice-write{background:#fff;border-radius:10px;border:0.5px solid #e0e0dc;padding:14px;margin-bottom:12px}
 .notice-write input,.notice-write select,.notice-write textarea{width:100%;padding:8px 10px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:13px;margin-bottom:8px;font-family:inherit;background:#fff}
+.edit-badge{font-size:10px;color:#0277bd;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -184,15 +187,25 @@ const CONTACTS=[
   {name:'일신모닝 택배기사',role:'택배',phone:'010-2260-3751',color:'#555'},
 ];
 
-const INV_SHELVES=[
-  {name:'우드장 1-1 (fritur)',items:['티셔츠류','스웻셔츠류','Acc류','bloom shirt','patchwork shirt','belted overall','지나정콜라보스커트·아일렛·볼륨·satin maxi·crochet maxi 스커트']},
-  {name:'우드장 1-2',items:['파머티','f253 제품들','아이콘볼캡','bloom sleeveless','the needle shirt','satin ribbon BL·dress류','피케셔츠·도트·엠브로더리드 스커트']},
-  {name:'우드장 2-1 (AND)',items:['허그티','패치워크 데님 스웻','pocket shirt']},
-  {name:'우드장 2-2',items:['플로팅티','가방류','트래블볼캡','daisy shirt','lace bustier dress']},
-  {name:'우드장 3-1 (hand crafts)',items:['블루버드티','키링·벨트']},
-  {name:'피팅룸옆 창고',items:['집기류','팬츠류','코쿤윈드브레이커','엠브로더리 웨스턴 윈드자켓','클로버윈드자켓']},
-  {name:'카운터 뒤쪽 창고',items:['종이백 (1·2층)','에이프런팬츠 베이지 M·L','페이드데님팬츠','커브드팬츠','교토카고팬츠','플레인데님','플랫티드팬츠','엠브로더리 데님팬츠','교토 카고스커트 차콜 M·L','지나정콜라보쇼츠']},
-];
+const INV_SHELVES_BY_SHOP={
+  도산:[
+    {name:'우드장 1-1 (fritur)',items:['티셔츠류','스웻셔츠류','Acc류','bloom shirt','patchwork shirt','belted overall']},
+    {name:'우드장 1-2',items:['파머티','f253 제품들','아이콘볼캡','bloom sleeveless','the needle shirt']},
+    {name:'우드장 2-1 (AND)',items:['허그티','패치워크 데님 스웻','pocket shirt']},
+    {name:'우드장 2-2',items:['플로팅티','가방류','트래블볼캡','daisy shirt','lace bustier dress']},
+    {name:'우드장 3-1 (hand crafts)',items:['블루버드티','키링·벨트']},
+    {name:'피팅룸옆 창고',items:['집기류','팬츠류','코쿤윈드브레이커','클로버윈드자켓']},
+    {name:'카운터 뒤쪽 창고',items:['종이백','에이프런팬츠','페이드데님팬츠','커브드팬츠','교토카고팬츠']},
+  ],
+  한남:[
+    {name:'메인 행거 A',items:['재킷류','셔츠류']},
+    {name:'창고',items:['시즌 재고']},
+  ],
+  서촌:[
+    {name:'메인 행거 A',items:['니트류','스커트류']},
+    {name:'창고',items:['시즌 재고']},
+  ],
+};
 
 const SUPPLIES=[
   {name:'쓰레기 봉투',qty:'40장'},{name:'투명 쓰레기 봉투',qty:'1개'},
@@ -208,11 +221,13 @@ const SUPPLIES=[
 // ===== 앱 상태 =====
 const S={
   page:'login',user:null,navTab:'home',
-  activeShop:{sales:'도산',checklist:'도산',notice:'all'},
+  activeShop:{sales:'도산',checklist:'도산',notice:'all',inv:'도산'},
   checks:{도산:{open:Array(12).fill(false),close:Array(7).fill(false)},한남:{open:Array(12).fill(false),close:Array(7).fill(false)},서촌:{open:Array(12).fill(false),close:Array(7).fill(false)}},
-  salesData:{도산:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},한남:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},서촌:{total:'',card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''}},
+  checksLoaded:{도산:false,한남:false,서촌:false},
+  salesData:{도산:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},한남:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},서촌:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''}},
+  todaySavedRow:{도산:null,한남:null,서촌:null}, // 오늘 이미 저장된 행이 있으면 행번호 저장(수정용)
   notices:[],noticesLoaded:false,
-  clockedIn:false,punchIn:null,punchOut:null,
+  clockedIn:false,punchIn:null,punchOut:null,punchLoaded:false,
   subPage:null,syncStatus:'idle',
   showNoticeForm:false,
   newNotice:{target:'all',level:'notice',title:'',body:''},
@@ -226,7 +241,21 @@ const S={
   attendanceLoaded:{도산:false,한남:false,서촌:false},
 };
 
-// ===== 구글시트 API =====
+// ===== 유틸 =====
+function p2(n){return String(n).padStart(2,'0');}
+function today(){const n=new Date();return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())}`;}
+function todayDisplay(){
+  const n=new Date();const days=['일','월','화','수','목','금','토'];
+  return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())} (${days[n.getDay()]})`;
+}
+function currentMonthKey(){const n=new Date();return`${n.getFullYear()}.${p2(n.getMonth()+1)}`;}
+function getMonthKey(dateStr){const p=dateStr.split('.');return p.length>=2?`${p[0]}.${p[1]}`:dateStr;}
+function parseNum(v){if(!v)return 0;return parseInt(String(v).replace(/[^0-9]/g,''))||0;}
+function formatComma(v){const n=parseNum(v);return n>0?n.toLocaleString('ko-KR'):'';}
+function isAdmin(){return S.user&&S.user.role==='관리자';}
+function userShop(){return S.user?S.user.showroom:'';}
+
+// ===== 구글시트 API (읽기) =====
 async function sheetGet(range){
   const url=`${BASE}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
   const r=await fetch(url);
@@ -235,54 +264,54 @@ async function sheetGet(range){
   return d.values||[];
 }
 
-async function sheetAppend(sheetName,values){
-  // Apps Script 웹앱을 통해 저장 (CORS 우회, 쓰기 권한 확보)
+// ===== 구글시트 쓰기 (Apps Script 경유) =====
+// action: append(추가) / update(특정 행 수정)
+async function sheetWrite(payload){
   const r=await fetch(APPS_SCRIPT_URL,{
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({sheet:sheetName,values:values[0]})
+    body:JSON.stringify(payload)
   });
   let result;
   try{result=await r.json();}catch(e){throw new Error('서버 응답 오류: '+(await r.text()).slice(0,200));}
   if(!result.success){throw new Error(result.error||'알 수 없는 오류');}
   return result;
 }
-
-function today(){
-  const n=new Date();
-  return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())}`;
+async function sheetAppend(sheetName,values){
+  return sheetWrite({action:'append',sheet:sheetName,values:values[0]});
+}
+async function sheetUpdateRow(sheetName,rowNumber,values){
+  return sheetWrite({action:'update',sheet:sheetName,row:rowNumber,values:values});
 }
 
-// ===== 매출 이력 불러오기 =====
-function parseNum(v){
-  if(!v)return 0;
-  return parseInt(String(v).replace(/[^0-9]/g,''))||0;
-}
-
-function formatComma(v){
-  const n=parseNum(v);
-  return n>0?n.toLocaleString('ko-KR'):'';
-}
+// ===== 매출 이력 =====
+function calcTotal(d){return parseNum(d.card)+parseNum(d.terminal)+parseNum(d.transfer)+parseNum(d.cash);}
 
 async function loadSalesHistory(shop){
   try{
-    const rows=await sheetGet(`매출_${shop}!A2:K1000`);
-    S.salesHistory[shop]=rows.filter(r=>r[0]).map(r=>({
-      date:r[0]||'',total:parseNum(r[1]),card:parseNum(r[2]),terminal:parseNum(r[3]),
+    const rows=await sheetGet(`매출_${shop}!A2:L1000`);
+    S.salesHistory[shop]=rows.map((r,idx)=>({
+      rowNum:idx+2,date:r[0]||'',total:parseNum(r[1]),card:parseNum(r[2]),terminal:parseNum(r[3]),
       transfer:parseNum(r[4]),cash:parseNum(r[5]),visitors:parseNum(r[6]),buyers:parseNum(r[7]),
       cvr:r[8]||'',special:r[9]||'',writer:r[10]||''
-    }));
+    })).filter(h=>h.date);
     S.salesHistoryLoaded[shop]=true;
+    // 오늘 이미 저장된 데이터 있으면 입력화면에 불러와서 수정 모드로
+    const t=today();
+    const todayRow=S.salesHistory[shop].find(h=>h.date===t);
+    if(todayRow){
+      S.todaySavedRow[shop]=todayRow.rowNum;
+      S.salesData[shop]={
+        card:String(todayRow.card||''),terminal:String(todayRow.terminal||''),
+        transfer:String(todayRow.transfer||''),cash:String(todayRow.cash||''),
+        visitors:String(todayRow.visitors||''),buyers:String(todayRow.buyers||''),
+        special:todayRow.special||''
+      };
+    }
   }catch(e){
     S.salesHistory[shop]=[];
     S.salesHistoryLoaded[shop]=true;
   }
-}
-
-function getMonthKey(dateStr){
-  // 날짜형식 YYYY.MM.DD
-  const p=dateStr.split('.');
-  return p.length>=2?`${p[0]}.${p[1]}`:dateStr;
 }
 
 function groupByMonth(history){
@@ -290,21 +319,13 @@ function groupByMonth(history){
   history.forEach(h=>{
     const mk=getMonthKey(h.date);
     if(!groups[mk])groups[mk]={total:0,visitors:0,buyers:0,days:0,items:[]};
-    groups[mk].total+=h.total;
-    groups[mk].visitors+=h.visitors;
-    groups[mk].buyers+=h.buyers;
-    groups[mk].days+=1;
-    groups[mk].items.push(h);
+    groups[mk].total+=h.total;groups[mk].visitors+=h.visitors;groups[mk].buyers+=h.buyers;
+    groups[mk].days+=1;groups[mk].items.push(h);
   });
   return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
 }
 
 // ===== 목표매출 =====
-function currentMonthKey(){
-  const n=new Date();
-  return`${n.getFullYear()}.${p2(n.getMonth()+1)}`;
-}
-
 async function loadTarget(shop){
   try{
     const rows=await sheetGet('목표매출!A2:C200');
@@ -312,12 +333,8 @@ async function loadTarget(shop){
     const row=rows.find(r=>r[0]===shop&&r[1]===mk);
     S.monthlyTarget[shop]=row?row[2]:'50000000';
     S.targetLoaded[shop]=true;
-  }catch(e){
-    S.monthlyTarget[shop]='50000000';
-    S.targetLoaded[shop]=true;
-  }
+  }catch(e){S.monthlyTarget[shop]='50000000';S.targetLoaded[shop]=true;}
 }
-
 async function saveTarget(shop){
   const val=S.monthlyTarget[shop];
   if(!val){alert('목표 매출을 입력해주세요.');return;}
@@ -325,48 +342,48 @@ async function saveTarget(shop){
     await sheetAppend('목표매출',[[shop,currentMonthKey(),val,S.user.name]]);
     alert(`✅ ${shop}점 ${currentMonthKey()} 목표매출이 저장되었습니다!`);
     document.getElementById('mc').innerHTML=renderSales();
-  }catch(e){
-    alert('저장 실패. "목표매출" 탭이 구글시트에 있는지 확인해주세요.\n(시트 하단 + 눌러 "목표매출" 탭 추가: 쇼룸/월/목표금액/작성자 헤더)');
-  }
+  }catch(e){alert('저장 실패: '+e.message);}
 }
-
 function setTarget(shop,val){S.monthlyTarget[shop]=val.replace(/[^0-9]/g,'');}
 
-// ===== 출퇴근 이력 =====
+// ===== 출퇴근 =====
 async function loadAttendance(shop){
   try{
     const rows=await sheetGet('근무확인!A2:F1000');
     const filtered=rows.filter(r=>r[2]===shop&&r[0]);
-    // 날짜+이름 기준으로 출근/퇴근 합치기
     const byKey={};
-    filtered.forEach(r=>{
+    filtered.forEach((r,idx)=>{
       const key=r[0]+'_'+r[1];
-      if(!byKey[key])byKey[key]={date:r[0],name:r[1],in:'',out:''};
-      if(r[3])byKey[key].in=byKey[key].in?byKey[key].in:r[3];
+      if(!byKey[key])byKey[key]={date:r[0],name:r[1],in:'',out:'',rowNum:idx+2};
+      if(r[3])byKey[key].in=byKey[key].in||r[3];
       if(r[4])byKey[key].out=r[4];
+      byKey[key].rowNum=idx+2;
     });
     S.attendanceHistory[shop]=Object.values(byKey).sort((a,b)=>b.date.localeCompare(a.date));
     S.attendanceLoaded[shop]=true;
-  }catch(e){
-    S.attendanceHistory[shop]=[];
-    S.attendanceLoaded[shop]=true;
-  }
+  }catch(e){S.attendanceHistory[shop]=[];S.attendanceLoaded[shop]=true;}
 }
-
+async function loadMyPunchStatus(){
+  try{
+    const rows=await sheetGet('근무확인!A2:F1000');
+    const t=today();
+    const mine=rows.filter(r=>r[0]===t&&r[1]===S.user.name);
+    if(mine.length){
+      const last=mine[mine.length-1];
+      S.punchIn=last[3]||S.punchIn;
+      S.punchOut=last[4]||null;
+      S.clockedIn=!!(S.punchIn&&!S.punchOut);
+    }
+    S.punchLoaded=true;
+  }catch(e){S.punchLoaded=true;}
+}
 function workMinutes(inT,outT){
   if(!inT||!outT)return null;
-  const[ih,im]=inT.split(':').map(Number);
-  const[oh,om]=outT.split(':').map(Number);
+  const[ih,im]=inT.split(':').map(Number);const[oh,om]=outT.split(':').map(Number);
   if(isNaN(ih)||isNaN(oh))return null;
   return(oh*60+om)-(ih*60+im);
 }
-
-function fmtMinutes(mins){
-  if(mins===null)return'-';
-  const h=Math.floor(mins/60),m=mins%60;
-  return`${h}시간${m>0?' '+m+'분':''}`;
-}
-
+function fmtMinutes(mins){if(mins===null)return'-';const h=Math.floor(mins/60),m=mins%60;return`${h}시간${m>0?' '+m+'분':''}`;}
 function groupAttendanceByMonth(history){
   const groups={};
   history.forEach(h=>{
@@ -379,81 +396,102 @@ function groupAttendanceByMonth(history){
   });
   return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
 }
-
-// ===== 전달사항 불러오기 =====
-async function loadNotices(){
+async function savePunch(type,time){
+  await sheetAppend('근무확인',[[today(),S.user.name,S.user.showroom,type==='in'?time:'',type==='out'?time:'','']]);
+}
+async function punch(){
+  const now=new Date();const t=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
   try{
-    const rows=await sheetGet('전달사항!A2:F100');
-    S.notices=rows.map(r=>({
-      date:r[0]||'',target:r[1]||'all',badge:r[2]||'notice',
-      title:r[3]||'',body:r[4]||'',writer:r[5]||''
-    })).reverse();
-    S.noticesLoaded=true;
-  }catch(e){
-    S.notices=getDefaultNotices();
-    S.noticesLoaded=true;
-  }
+    if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
+    else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
+    S.attendanceLoaded[S.user.showroom]=false;
+  }catch(e){alert('출퇴근 기록 저장 실패: '+e.message);}
+  document.getElementById('mc').innerHTML=renderChecklist();startClock();
 }
 
-function getDefaultNotices(){return[
-  {date:'최신',target:'all',badge:'urgent',title:'판매 불가 상품 안내',body:'• 교토카고팬츠: 리오더 중, DP판매·예약 불가\n• Button Long Sleeve T: 예약판매 불가\n• 교토 바지 카키색·프리 슬리브리스 티셔츠: DP판매 불가\n• 25 S/S 전체: DP판매 불가, 예약배송만 가능\n• 품절상품 주문불가 수시 확인'},
-  {date:'최신',target:'all',badge:'notice',title:'주요 업무 공지',body:'• 여름 신상품: 본사재고 20개 미만 주문 금지\n• 주문서: 두 장씩 떼서 작성\n• 이지체인 교환 시 추가결제 불가 → 영수증 취소 후 재결제'},
-  {date:'최신',target:'all',badge:'notice',title:'식물 물주기 안내',body:'• 부시측백·로즈마리: 4L 기준 3번, 일요일도 필수\n• 파키라: 열흘에 한 번\n• 분무기로 잎 수시 적시기'},
-];}
+// ===== 체크리스트 =====
+async function loadChecklist(shop){
+  try{
+    const rows=await sheetGet(`체크리스트_${shop}!A2:F2000`);
+    const t=today();
+    const todayRows=rows.filter(r=>r[0]===t);
+    const open=Array(OPEN_CHECKS.length).fill(false);
+    const close=Array(CLOSE_CHECKS.length).fill(false);
+    todayRows.forEach(r=>{
+      const list=r[1]==='오픈'?OPEN_CHECKS:CLOSE_CHECKS;
+      const arr=r[1]==='오픈'?open:close;
+      const idx=list.indexOf(r[2]);
+      if(idx>-1)arr[idx]=r[3]==='완료';
+    });
+    S.checks[shop]={open,close};
+    S.checksLoaded[shop]=true;
+  }catch(e){S.checksLoaded[shop]=true;}
+}
+async function saveChecklist(shop,type,item,done){
+  await sheetAppend(`체크리스트_${shop}`,[[today(),type==='open'?'오픈':'마감',item,done?'완료':'취소',new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),S.user.name]]);
+}
+async function toggleCheck(shop,type,i){
+  S.checks[shop][type][i]=!S.checks[shop][type][i];
+  const item=type==='open'?OPEN_CHECKS[i]:CLOSE_CHECKS[i];
+  document.getElementById('mc').innerHTML=renderChecklist();startClock();
+  try{await saveChecklist(shop,type,item,S.checks[shop][type][i]);}
+  catch(e){alert('체크리스트 저장 실패: '+e.message);}
+}
 
-// ===== 매출 저장 =====
+// ===== 매출 저장/수정 =====
 async function saveSales(shop){
   const d=S.salesData[shop];
-  if(!d.total){alert('총 매출을 입력해주세요.');return;}
+  const total=calcTotal(d);
+  if(total===0){alert('카드/단말기/계좌이체/현금 중 하나 이상 입력해주세요.');return;}
   S.syncStatus='saving';
   document.getElementById('mc').innerHTML=renderSales();
   try{
-    const vis=parseInt(d.visitors)||0;
-    const buy=parseInt(d.buyers)||0;
+    const vis=parseInt(d.visitors)||0;const buy=parseInt(d.buyers)||0;
     const cvr=vis>0?Math.round(buy/vis*100)+'%':'';
-    await sheetAppend(`매출_${shop}`,[
-      [today(),d.total,d.card,d.terminal,d.transfer,d.cash,d.visitors,d.buyers,cvr,d.special,S.user.name]
-    ]);
+    const row=[today(),total,d.card,d.terminal,d.transfer,d.cash,d.visitors,d.buyers,cvr,d.special,S.user.name];
+    if(S.todaySavedRow[shop]){
+      await sheetUpdateRow(`매출_${shop}`,S.todaySavedRow[shop],row);
+    }else{
+      await sheetAppend(`매출_${shop}`,[row]);
+    }
     S.syncStatus='done';
     S.salesHistoryLoaded[shop]=false;
-    alert(`✅ ${shop}점 마감 보고가 구글시트에 저장되었습니다!`);
+    await loadSalesHistory(shop);
+    alert(`✅ ${shop}점 매출이 저장되었습니다!`);
   }catch(e){
     S.syncStatus='err';
-    alert('저장 실패:\n'+e.message+'\n\n[원인 안내]\n- API 키만으로는 시트 "쓰기"가 안 되는 경우가 많습니다 (읽기는 API키, 쓰기는 OAuth 또는 Apps Script 웹앱이 필요)\n- 시트 공유 설정이 "편집자"인지 확인해주세요');
+    alert('저장 실패: '+e.message);
   }
   document.getElementById('mc').innerHTML=renderSales();
 }
+function setSales(shop,key,val){S.salesData[shop][key]=val.replace(/[^0-9]/g,'');document.getElementById('mc').innerHTML=renderSales();}
+function setSalesText(shop,key,val){S.salesData[shop][key]=val;}
 
-// ===== 체크리스트 저장 =====
-async function saveChecklist(shop,type,item,done){
-  await sheetAppend(`체크리스트_${shop}`,[
-    [today(),type==='open'?'오픈':'마감',item,done?'완료':'취소',new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),S.user.name]
-  ]);
+// ===== 전달사항 =====
+async function loadNotices(){
+  try{
+    const rows=await sheetGet('전달사항!A2:F100');
+    S.notices=rows.map(r=>({date:r[0]||'',target:r[1]||'all',badge:r[2]||'notice',title:r[3]||'',body:r[4]||'',writer:r[5]||''})).reverse();
+    S.noticesLoaded=true;
+  }catch(e){S.notices=getDefaultNotices();S.noticesLoaded=true;}
 }
-
-// ===== 출퇴근 저장 =====
-async function savePunch(type,time){
-  await sheetAppend('근무확인',[
-    [today(),S.user.name,S.user.showroom,type==='in'?time:'',type==='out'?time:'','']
-  ]);
-}
-
-// ===== 전달사항 저장 =====
+function getDefaultNotices(){return[
+  {date:'최신',target:'all',badge:'urgent',title:'판매 불가 상품 안내',body:'• 교토카고팬츠: 리오더 중, DP판매·예약 불가\n• Button Long Sleeve T: 예약판매 불가\n• 25 S/S 전체: DP판매 불가, 예약배송만 가능'},
+  {date:'최신',target:'all',badge:'notice',title:'주요 업무 공지',body:'• 여름 신상품: 본사재고 20개 미만 주문 금지\n• 이지체인 교환 시 추가결제 불가 → 영수증 취소 후 재결제'},
+];}
 async function saveNotice(){
   const n=S.newNotice;
   if(!n.title||!n.body){alert('제목과 내용을 입력해주세요.');return;}
   try{
-    await sheetAppend('전달사항',[
-      [today(),n.target,n.level,n.title,n.body,S.user.name]
-    ]);
+    await sheetAppend('전달사항',[[today(),n.target,n.level,n.title,n.body,S.user.name]]);
     S.newNotice={target:'all',level:'notice',title:'',body:''};
-    S.showNoticeForm=false;
-    S.noticesLoaded=false;
+    S.showNoticeForm=false;S.noticesLoaded=false;
     await loadNotices();
     document.getElementById('mc').innerHTML=renderNotice();
     alert('✅ 전달사항이 저장되었습니다!');
-  }catch(e){alert('저장 실패. 다시 시도해주세요.');}
+  }catch(e){alert('저장 실패: '+e.message);}
 }
+function toggleNoticeForm(){S.showNoticeForm=!S.showNoticeForm;document.getElementById('mc').innerHTML=renderNotice();}
 
 // ===== 렌더링 =====
 function render(){
@@ -474,12 +512,15 @@ function renderLogin(){return`
   <div class="login-note">※ 실제 운영 시 Google 계정 로그인</div>
 </div>`;}
 
-function login(e){
+async function login(e){
   S.user=USERS.find(u=>u.email===e);
   const shop=S.user.showroom==='전체'?'도산':S.user.showroom;
-  S.activeShop={sales:shop,checklist:shop,notice:'all'};
+  S.activeShop={sales:shop,checklist:shop,notice:'all',inv:shop};
   S.page='main';render();
   loadNotices();
+  loadMyPunchStatus().then(()=>{if(S.navTab==='checklist')document.getElementById('mc').innerHTML=renderChecklist();});
+  loadChecklist(shop).then(()=>{if(S.navTab==='checklist')document.getElementById('mc').innerHTML=renderChecklist();});
+  loadSalesHistory(shop);
 }
 function logout(){S.page='login';S.user=null;S.noticesLoaded=false;render();}
 
@@ -489,7 +530,7 @@ function renderHeader(){
   return`<div class="header">
     <div class="header-logo">FRITUR</div>
     <div class="header-right">
-      <span class="sync-badge ${S.syncStatus==='err'?'err':S.syncStatus==='saving'?'ing':''}">${S.syncStatus==='saving'?'저장중':S.syncStatus==='err'?'오류':'구글시트 연동'}</span>
+      <span class="sync-badge ${S.syncStatus==='err'?'err':S.syncStatus==='saving'?'ing':''}">${S.syncStatus==='saving'?'저장중':S.syncStatus==='err'?'오류':'연동됨'}</span>
       <div class="showroom-badge ${cls}">${shop}</div>
       <div class="user-avatar">${S.user.initial}</div>
     </div>
@@ -499,7 +540,20 @@ function renderBottomNav(){
   const tabs=[{id:'home',icon:'ti-home',label:'홈'},{id:'sales',icon:'ti-chart-bar',label:'매출'},{id:'checklist',icon:'ti-checkbox',label:'체크'},{id:'notice',icon:'ti-bell',label:'전달'},{id:'more',icon:'ti-dots',label:'더보기'}];
   return`<div class="bottom-nav">${tabs.map(t=>`<button class="nav-item ${S.navTab===t.id?'active':''}" onclick="nav('${t.id}')"><i class="ti ${t.icon}"></i>${t.label}</button>`).join('')}</div>`;}
 
-function nav(t){S.navTab=t;S.subPage=null;document.getElementById('mc').innerHTML=renderPage();startClock();}
+function nav(t){
+  S.navTab=t;S.subPage=null;
+  document.getElementById('mc').innerHTML=renderPage();
+  startClock();
+  if(t==='checklist'){
+    const shop=S.activeShop.checklist;
+    if(!S.checksLoaded[shop]){loadChecklist(shop).then(()=>{if(S.navTab==='checklist'&&S.checklistView==='check')document.getElementById('mc').innerHTML=renderChecklist();});}
+    if(!S.punchLoaded){loadMyPunchStatus().then(()=>{if(S.navTab==='checklist'&&S.checklistView==='check')document.getElementById('mc').innerHTML=renderChecklist();});}
+  }
+  if(t==='sales'){
+    const shop=S.activeShop.sales;
+    if(!S.salesHistoryLoaded[shop]){loadSalesHistory(shop).then(()=>{if(S.navTab==='sales')document.getElementById('mc').innerHTML=renderPage();});}
+  }
+}
 
 function renderPage(){
   switch(S.navTab){
@@ -511,29 +565,39 @@ function renderPage(){
   }
 }
 
-function isAdmin(){return S.user&&S.user.role==='관리자';}
-function userShop(){return S.user?S.user.showroom:'';}
-
 function shopTabsUI(page,active,includeAll){
   const shops=isAdmin()?SHOPS:SHOPS.filter(s=>s===userShop());
   if(shops.length===1&&!includeAll)return'';
   const all=includeAll?`<div class="shop-tab ${active==='all'?'active-all':''}" onclick="setShopTab('${page}','all')">전체</div>`:'';
   return`<div class="shop-tabs">${all}${shops.map(s=>`<div class="shop-tab ${active===s?`active-${SHOP_CLASS[s]}`:''}" onclick="setShopTab('${page}','${s}')">${s}</div>`).join('')}</div>`;}
 
-function setShopTab(page,shop){S.activeShop[page]=shop;document.getElementById('mc').innerHTML=renderPage();startClock();}
+function setShopTab(page,shop){
+  S.activeShop[page]=shop;
+  if(page==='checklist'){
+    if(!S.checksLoaded[shop]){
+      document.getElementById('mc').innerHTML=`<div class="page-title">업무 체크리스트</div><div class="loading">불러오는 중...</div>`;
+      loadChecklist(shop).then(()=>{document.getElementById('mc').innerHTML=renderPage();});
+      return;
+    }
+  }
+  if(page==='sales'){
+    if(!S.salesHistoryLoaded[shop]){
+      document.getElementById('mc').innerHTML=`<div class="page-title">매출 현황</div><div class="loading">불러오는 중...</div>`;
+      loadSalesHistory(shop).then(()=>{document.getElementById('mc').innerHTML=renderPage();});
+      return;
+    }
+  }
+  document.getElementById('mc').innerHTML=renderPage();startClock();
+}
 
 function renderHome(){
-  const now=new Date();
-  const days=['일','월','화','수','목','금','토'];
-  const ds=`${now.getFullYear()}.${p2(now.getMonth()+1)}.${p2(now.getDate())} (${days[now.getDay()]})`;
+  const ds=todayDisplay();
   if(isAdmin()){return`
     <div class="page-title">안녕하세요, ${S.user.name}님</div>
     <p style="font-size:12px;color:#999;margin:-10px 0 14px">${ds} · 전체 현황</p>
     <div class="card"><div class="card-header"><div class="card-title">쇼룸별 오픈 체크</div></div><div class="card-body">
       ${SHOPS.map(shop=>{
-        const done=S.checks[shop].open.filter(Boolean).length;
-        const total=OPEN_CHECKS.length;
-        const pct=Math.round(done/total*100);
+        const done=S.checks[shop].open.filter(Boolean).length;const total=OPEN_CHECKS.length;const pct=Math.round(done/total*100);
         return`<div class="summary-row">
           <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[shop]}"></div><span style="font-size:13px;font-weight:500">${shop}점</span></div>
           <div style="display:flex;align-items:center;gap:10px">
@@ -542,14 +606,17 @@ function renderHome(){
           </div></div>`;}).join('')}
     </div></div>
     <div class="card"><div class="card-header"><div class="card-title">오늘 매출 현황</div></div><div class="card-body">
-      ${SHOPS.map(shop=>{const d=S.salesData[shop];return`
+      ${SHOPS.map(shop=>{const d=S.salesData[shop];const total=calcTotal(d);return`
       <div class="summary-row">
         <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[shop]}"></div><span style="font-size:13px;font-weight:500">${shop}점</span></div>
         <div style="text-align:right">
-          <div style="font-size:13px;font-weight:600">${d.total?d.total+'원':'미입력'}</div>
+          <div style="font-size:13px;font-weight:600">${total>0?formatComma(total)+'원':'미입력'}</div>
           ${d.visitors?`<div style="font-size:11px;color:#999">방문 ${d.visitors}명</div>`:''}
         </div>
-      </div>`}).join('')}
+      </div>`;}).join('')}
+    </div></div>
+    <div class="card"><div class="card-header"><div class="card-title">최신 전달사항</div><span style="font-size:11px;color:#c62828;cursor:pointer" onclick="nav('notice')">전체보기</span></div><div class="card-body">
+      <div style="display:flex;align-items:center;gap:7px;padding:4px 0"><span class="nbadge urgent">주의</span><span style="font-size:13px">판매 불가 상품 안내</span></div>
     </div></div>`;}
 
   const shop=userShop();
@@ -559,33 +626,18 @@ function renderHome(){
   <div class="page-title">안녕하세요, ${S.user.name}님</div>
   <p style="font-size:12px;color:#999;margin:-10px 0 14px">${ds} · ${shop}점</p>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">오픈 체크</div>
-      <div class="stat-value">${openDone}<span style="font-size:13px;color:#999"> / ${OPEN_CHECKS.length}</span></div>
-      <div class="stat-sub ${openDone===OPEN_CHECKS.length?'stat-up':''}">${openDone===OPEN_CHECKS.length?'✓ 완료':'진행중'}</div>
-    </div>
-    <div class="stat-card"><div class="stat-label">마감 체크</div>
-      <div class="stat-value">${closeDone}<span style="font-size:13px;color:#999"> / ${CLOSE_CHECKS.length}</span></div>
-      <div class="stat-sub ${closeDone===CLOSE_CHECKS.length?'stat-up':''}">${closeDone===CLOSE_CHECKS.length?'✓ 완료':'진행중'}</div>
-    </div>
+    <div class="stat-card"><div class="stat-label">오픈 체크</div><div class="stat-value">${openDone}<span style="font-size:13px;color:#999"> / ${OPEN_CHECKS.length}</span></div>
+      <div class="stat-sub ${openDone===OPEN_CHECKS.length?'stat-up':''}">${openDone===OPEN_CHECKS.length?'✓ 완료':'진행중'}</div></div>
+    <div class="stat-card"><div class="stat-label">마감 체크</div><div class="stat-value">${closeDone}<span style="font-size:13px;color:#999"> / ${CLOSE_CHECKS.length}</span></div>
+      <div class="stat-sub ${closeDone===CLOSE_CHECKS.length?'stat-up':''}">${closeDone===CLOSE_CHECKS.length?'✓ 완료':'진행중'}</div></div>
   </div>
   <div class="card"><div class="card-header"><div class="card-title">매장 현황 · ${shop}점</div></div><div class="card-body">
     <div class="info-row"><div class="info-key">영업시간</div><div class="info-val">AM 11:00 – PM 7:00 (휴게 PM 2–3)</div></div>
     <div class="info-row"><div class="info-key">정기휴무</div><div class="info-val">매주 월요일</div></div>
   </div></div>
-  <div class="card"><div class="card-header"><div class="card-title">최신 전달사항</div>
-    <span style="font-size:11px;color:#0277bd;cursor:pointer" onclick="nav('notice')">전체보기</span>
-  </div><div class="card-body">
-    <div style="display:flex;align-items:center;gap:7px;padding:4px 0">
-      <span class="nbadge urgent">주의</span>
-      <span style="font-size:13px">판매 불가 상품 안내</span>
-    </div>
+  <div class="card"><div class="card-header"><div class="card-title">최신 전달사항</div><span style="font-size:11px;color:#0277bd;cursor:pointer" onclick="nav('notice')">전체보기</span></div><div class="card-body">
+    <div style="display:flex;align-items:center;gap:7px;padding:4px 0"><span class="nbadge urgent">주의</span><span style="font-size:13px">판매 불가 상품 안내</span></div>
   </div></div>`;}
-
-function todayDisplay(){
-  const n=new Date();
-  const days=['일','월','화','수','목','금','토'];
-  return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())} (${days[n.getDay()]})`;
-}
 
 function renderSales(){
   const shop=S.activeShop.sales;
@@ -598,20 +650,17 @@ function renderSales(){
     <div class="shop-tab ${S.salesView==='daily'?'active-all':''}" onclick="setSalesView('daily')">일별</div>
     <div class="shop-tab ${S.salesView==='monthly'?'active-all':''}" onclick="setSalesView('monthly')">월별</div>
   </div>
-  ${S.salesView==='input'?renderSalesInput(shop):S.salesView==='daily'?renderSalesDaily(shop):renderSalesMonthly(shop)}`;
+  ${!S.salesHistoryLoaded[shop]?`<div class="loading">불러오는 중...</div>`:
+    S.salesView==='input'?renderSalesInput(shop):S.salesView==='daily'?renderSalesDaily(shop):renderSalesMonthly(shop)}`;
 }
 
 function setSalesView(v){
   S.salesView=v;
   const shop=S.activeShop.sales;
-  const needsHistory=(v==='daily'||v==='monthly')&&!S.salesHistoryLoaded[shop];
   const needsTarget=(v==='monthly')&&!S.targetLoaded[shop];
-  if(needsHistory||needsTarget){
-    document.getElementById('mc').innerHTML=`<div class="page-title">매출 현황</div><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`;
-    Promise.all([
-      needsHistory?loadSalesHistory(shop):Promise.resolve(),
-      needsTarget?loadTarget(shop):Promise.resolve()
-    ]).then(()=>{document.getElementById('mc').innerHTML=renderSales();});
+  if(needsTarget){
+    document.getElementById('mc').innerHTML=`<div class="page-title">매출 현황</div><div class="loading">불러오는 중...</div>`;
+    loadTarget(shop).then(()=>{document.getElementById('mc').innerHTML=renderSales();});
   }else{
     document.getElementById('mc').innerHTML=renderSales();
   }
@@ -619,73 +668,69 @@ function setSalesView(v){
 
 function renderSalesInput(shop){
   const d=S.salesData[shop];
-  const vis=parseInt(d.visitors)||0;
-  const buy=parseInt(d.buyers)||0;
+  const total=calcTotal(d);
+  const vis=parseInt(d.visitors)||0;const buy=parseInt(d.buyers)||0;
   const cvr=vis>0?Math.round(buy/vis*100):0;
+  const isEdit=!!S.todaySavedRow[shop];
   return`
   <div class="card"><div class="card-header">
-    <div class="card-title">${shop}점 · 오늘 매출</div>
+    <div class="card-title">${shop}점 · 오늘 매출 ${isEdit?'<span class="edit-badge">(저장됨 · 수정가능)</span>':''}</div>
     <span style="font-size:11px;color:#999">이지어드민 확인 후 입력</span>
   </div><div class="card-body">
-    ${[{key:'total',label:'총 매출',unit:'원'},{key:'card',label:'카드',unit:'원'},{key:'terminal',label:'단말기',unit:'원'},{key:'transfer',label:'계좌이체',unit:'원'},{key:'cash',label:'현금',unit:'원'}].map(f=>`
+    <div class="sales-input-row">
+      <div class="sales-input-label" style="font-weight:600">총 매출 (자동계산)</div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input readonly-total" type="text" value="${formatComma(total)}" disabled>
+        <span style="font-size:12px;color:#999;width:14px">원</span>
+      </div>
+    </div>
+    ${[{key:'card',label:'카드'},{key:'terminal',label:'단말기'},{key:'transfer',label:'계좌이체'},{key:'cash',label:'현금'}].map(f=>`
     <div class="sales-input-row">
       <div class="sales-input-label">${f.label}</div>
       <div style="display:flex;align-items:center;gap:5px">
         <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${formatComma(d[f.key])}" oninput="setSales('${shop}','${f.key}',this.value)">
-        <span style="font-size:12px;color:#999;width:14px">${f.unit}</span>
+        <span style="font-size:12px;color:#999;width:14px">원</span>
       </div>
     </div>`).join('')}
     <div class="sales-input-row"><div class="sales-input-label">방문객 수</div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.visitors}" oninput="setSales('${shop}','visitors',this.value)">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.visitors}" oninput="setSalesText('${shop}','visitors',this.value.replace(/[^0-9]/g,''))" onblur="document.getElementById('mc').innerHTML=renderSales()">
         <span style="font-size:12px;color:#999;width:14px">명</span>
       </div>
     </div>
     <div class="sales-input-row"><div class="sales-input-label">구매객 수</div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.buyers}" oninput="setSales('${shop}','buyers',this.value)">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${d.buyers}" oninput="setSalesText('${shop}','buyers',this.value.replace(/[^0-9]/g,''))" onblur="document.getElementById('mc').innerHTML=renderSales()">
         <span style="font-size:12px;color:#999;width:14px">명</span>
       </div>
     </div>
-    ${vis>0?`<div class="sales-input-row"><div class="sales-input-label" style="color:#999">구매전환율</div>
-      <div style="font-size:13px;font-weight:600;color:${SHOP_COLOR[shop]}">${cvr}%</div></div>`:''}
+    <div class="sales-input-row"><div class="sales-input-label" style="color:#999">구매전환율</div>
+      <div style="font-size:13px;font-weight:600;color:${SHOP_COLOR[shop]}">${vis>0?cvr+'%':'-'}</div>
+    </div>
   </div></div>
   <div class="card"><div class="card-header"><div class="card-title">특이사항</div></div><div class="card-body">
-    <textarea class="textarea" rows="3" placeholder="반품 사유 / 고객 문의 / 기타" oninput="setSales('${shop}','special',this.value)">${d.special}</textarea>
+    <textarea class="textarea" rows="3" placeholder="반품 사유 / 고객 문의 / 기타" oninput="setSalesText('${shop}','special',this.value)">${d.special}</textarea>
   </div></div>
-  <button class="cta-btn" onclick="saveSales('${shop}')"><i class="ti ti-send"></i> ${shop}점 마감 보고 저장</button>
-  ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약 (오늘 입력값)</div></div><div class="card-body">
-    ${SHOPS.map(s=>{const sd=S.salesData[s];return`
+  <button class="cta-btn" onclick="saveSales('${shop}')"><i class="ti ti-send"></i> ${shop}점 ${isEdit?'매출 수정 저장':'마감 보고 저장'}</button>
+  ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약 (오늘)</div></div><div class="card-body">
+    ${SHOPS.map(s=>{const sd=S.salesData[s];const t=calcTotal(sd);return`
     <div class="summary-row">
       <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[s]}"></div><span style="font-size:13px">${s}점</span></div>
       <div style="text-align:right">
-        <div style="font-size:13px;font-weight:600">${sd.total?formatWon(sd.total):'미입력'}</div>
+        <div style="font-size:13px;font-weight:600">${t>0?formatComma(t)+'원':'미입력'}</div>
         ${sd.visitors?`<div style="font-size:11px;color:#999">방문 ${sd.visitors}명 / 구매 ${sd.buyers||0}명</div>`:''}
       </div>
     </div>`}).join('')}
   </div></div>`:''}`;
 }
 
-function formatWon(v){
-  const n=parseNum(v);
-  return n.toLocaleString('ko-KR')+'원';
-}
-
 function renderSalesDaily(shop){
   const history=S.salesHistory[shop]||[];
-  if(!history.length){
-    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다<br>"입력" 탭에서 마감 보고를 저장해주세요</div></div></div>`;
-  }
+  if(!history.length)return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
   const sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
-  return`
-  <div class="card"><div class="card-header">
-    <div class="card-title">${shop}점 · 일별 매출</div>
-    <span style="font-size:11px;color:#999">최근 ${sorted.length}건</span>
-  </div><div class="card-body">
-    ${sorted.map(h=>`
-    <div class="summary-row" style="align-items:flex-start">
-      <div>
-        <div style="font-size:13px;font-weight:500">${h.date}</div>
+  return`<div class="card"><div class="card-header"><div class="card-title">${shop}점 · 일별 매출</div><span style="font-size:11px;color:#999">최근 ${sorted.length}건</span></div><div class="card-body">
+    ${sorted.map(h=>`<div class="summary-row" style="align-items:flex-start">
+      <div><div style="font-size:13px;font-weight:500">${h.date}${h.date===today()?' (오늘)':''}</div>
         ${h.visitors?`<div style="font-size:11px;color:#999;margin-top:2px">방문 ${h.visitors}명 · 구매 ${h.buyers}명${h.cvr?' · 전환율 '+h.cvr:''}</div>`:''}
         ${h.special?`<div style="font-size:11px;color:#c62828;margin-top:2px">${h.special}</div>`:''}
       </div>
@@ -697,51 +742,33 @@ function renderSalesDaily(shop){
 function renderSalesMonthly(shop){
   const history=S.salesHistory[shop]||[];
   const target=parseNum(S.monthlyTarget[shop]);
-  const targetInputHtml=`
-  <div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 매출</div></div><div class="card-body">
-    <div class="sales-input-row">
-      <div class="sales-input-label">이번 달 목표</div>
+  const targetInputHtml=`<div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 매출</div></div><div class="card-body">
+    <div class="sales-input-row"><div class="sales-input-label">이번 달 목표</div>
       <div style="display:flex;align-items:center;gap:5px">
         <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${formatComma(S.monthlyTarget[shop])}" oninput="setTarget('${shop}',this.value)">
         <span style="font-size:12px;color:#999;width:14px">원</span>
-      </div>
-    </div>
+      </div></div>
     <button class="cta-btn sec" style="margin-top:8px" onclick="saveTarget('${shop}')"><i class="ti ti-target-arrow"></i> 목표 저장</button>
   </div></div>`;
-
-  if(!history.length){
-    return targetInputHtml+`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
-  }
+  if(!history.length)return targetInputHtml+`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
   const grouped=groupByMonth(history);
   const thisMonthEntry=grouped.find(([m])=>m===currentMonthKey());
   const thisMonthTotal=thisMonthEntry?thisMonthEntry[1].total:0;
   const pct=target>0?Math.min(999,Math.round(thisMonthTotal/target*100)):0;
-
-  return`
-  ${targetInputHtml}
-  ${target>0?`
-  <div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 달성률</div></div><div class="card-body">
+  return`${targetInputHtml}
+  ${target>0?`<div class="card"><div class="card-header"><div class="card-title">${currentMonthKey()} 목표 달성률</div></div><div class="card-body">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
       <span style="font-size:22px;font-weight:700;color:${SHOP_COLOR[shop]}">${pct}%</span>
       <span style="font-size:12px;color:#999">${thisMonthTotal.toLocaleString('ko-KR')}원 / ${target.toLocaleString('ko-KR')}원</span>
     </div>
-    <div style="width:100%;height:8px;background:#f0ede8;border-radius:6px;overflow:hidden">
-      <div style="width:${Math.min(100,pct)}%;height:100%;background:${SHOP_COLOR[shop]};border-radius:6px;transition:width .3s"></div>
-    </div>
-    ${pct>=100?`<div style="font-size:12px;color:#2d7a3a;margin-top:6px;font-weight:500">🎉 목표 달성!</div>`:
-    `<div style="font-size:12px;color:#999;margin-top:6px">목표까지 ${(target-thisMonthTotal).toLocaleString('ko-KR')}원 남음</div>`}
+    <div style="width:100%;height:8px;background:#f0ede8;border-radius:6px;overflow:hidden"><div style="width:${Math.min(100,pct)}%;height:100%;background:${SHOP_COLOR[shop]};border-radius:6px"></div></div>
+    ${pct>=100?`<div style="font-size:12px;color:#2d7a3a;margin-top:6px;font-weight:500">🎉 목표 달성!</div>`:`<div style="font-size:12px;color:#999;margin-top:6px">목표까지 ${(target-thisMonthTotal).toLocaleString('ko-KR')}원 남음</div>`}
   </div></div>`:''}
-  <div class="card"><div class="card-header">
-    <div class="card-title">${shop}점 · 월별 매출</div>
-  </div><div class="card-body">
+  <div class="card"><div class="card-header"><div class="card-title">${shop}점 · 월별 매출</div></div><div class="card-body">
     ${grouped.map(([month,g])=>{
-      const avg=g.days>0?Math.round(g.total/g.days):0;
-      const cvr=g.visitors>0?Math.round(g.buyers/g.visitors*100):0;
-      const isThisMonth=month===currentMonthKey();
-      return`
-      <div class="summary-row" style="align-items:flex-start">
-        <div>
-          <div style="font-size:13px;font-weight:600">${month}${isThisMonth?' (이번달)':''}</div>
+      const avg=g.days>0?Math.round(g.total/g.days):0;const cvr=g.visitors>0?Math.round(g.buyers/g.visitors*100):0;
+      return`<div class="summary-row" style="align-items:flex-start">
+        <div><div style="font-size:13px;font-weight:600">${month}${month===currentMonthKey()?' (이번달)':''}</div>
           <div style="font-size:11px;color:#999;margin-top:2px">${g.days}일 입력 · 일평균 ${avg.toLocaleString('ko-KR')}원</div>
           ${g.visitors?`<div style="font-size:11px;color:#999">방문 ${g.visitors}명 · 전환율 ${cvr}%</div>`:''}
         </div>
@@ -749,8 +776,6 @@ function renderSalesMonthly(shop){
       </div>`;}).join('')}
   </div></div>`;
 }
-
-function setSales(shop,key,val){S.salesData[shop][key]=val.replace(/[^0-9]/g,'');}
 
 function renderChecklist(){
   const shop=S.activeShop.checklist;
@@ -769,7 +794,7 @@ function setChecklistView(v){
   S.checklistView=v;
   const shop=S.activeShop.checklist;
   if(v==='attendance'&&!S.attendanceLoaded[shop]){
-    document.getElementById('mc').innerHTML=`<div class="page-title">업무 체크리스트</div><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`;
+    document.getElementById('mc').innerHTML=`<div class="page-title">업무 체크리스트</div><div class="loading">불러오는 중...</div>`;
     loadAttendance(shop).then(()=>{document.getElementById('mc').innerHTML=renderChecklist();});
   }else{
     document.getElementById('mc').innerHTML=renderChecklist();
@@ -777,88 +802,50 @@ function setChecklistView(v){
 }
 
 function renderChecklistMain(shop){
+  if(!S.checksLoaded[shop])return`<div class="loading">불러오는 중...</div>`;
   const chk=S.checks[shop];
   return`
-  <div class="card"><div class="card-header">
-    <div class="card-title">🌅 오픈 체크 · ${shop}점</div>
-    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.open.filter(Boolean).length} / ${OPEN_CHECKS.length}</span>
-  </div><div class="card-body">
-    ${OPEN_CHECKS.map((item,i)=>`
-    <div class="check-item" onclick="toggleCheck('${shop}','open',${i})">
+  <div class="card"><div class="card-header"><div class="card-title">🌅 오픈 체크 · ${shop}점</div>
+    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.open.filter(Boolean).length} / ${OPEN_CHECKS.length}</span></div>
+  <div class="card-body">
+    ${OPEN_CHECKS.map((item,i)=>`<div class="check-item" onclick="toggleCheck('${shop}','open',${i})">
       <div class="check-box ${chk.open[i]?'done':''}">${chk.open[i]?'<i class="ti ti-check"></i>':''}</div>
-      <div class="check-label ${chk.open[i]?'done':''}">${item}</div>
-    </div>`).join('')}
+      <div class="check-label ${chk.open[i]?'done':''}">${item}</div></div>`).join('')}
   </div></div>
-  <div class="card"><div class="card-header">
-    <div class="card-title">🌙 마감 체크 · ${shop}점</div>
-    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.close.filter(Boolean).length} / ${CLOSE_CHECKS.length}</span>
-  </div><div class="card-body">
-    ${CLOSE_CHECKS.map((item,i)=>`
-    <div class="check-item" onclick="toggleCheck('${shop}','close',${i})">
+  <div class="card"><div class="card-header"><div class="card-title">🌙 마감 체크 · ${shop}점</div>
+    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${chk.close.filter(Boolean).length} / ${CLOSE_CHECKS.length}</span></div>
+  <div class="card-body">
+    ${CLOSE_CHECKS.map((item,i)=>`<div class="check-item" onclick="toggleCheck('${shop}','close',${i})">
       <div class="check-box ${chk.close[i]?'done':''}">${chk.close[i]?'<i class="ti ti-check"></i>':''}</div>
-      <div class="check-label ${chk.close[i]?'done':''}">${item}</div>
-    </div>`).join('')}
+      <div class="check-label ${chk.close[i]?'done':''}">${item}</div></div>`).join('')}
   </div></div>
-  ${renderAttendance(shop)}`;
-}
-
-function renderAttendanceHistory(shop){
-  const history=S.attendanceHistory[shop]||[];
-  if(!history.length){
-    return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">출퇴근 기록이 없습니다<br>"체크리스트" 탭에서 출근/퇴근 버튼을 눌러주세요</div></div></div>`;
-  }
-  const grouped=groupAttendanceByMonth(history);
-  return grouped.map(([month,g])=>`
-    <div class="card"><div class="card-header">
-      <div class="card-title">${month}${month===currentMonthKey()?' (이번달)':''}</div>
-      <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${g.days}일 근무</span>
-    </div><div class="card-body">
-      ${g.items.map(h=>{
-        const mins=workMinutes(h.in,h.out);
-        return`<div class="attend-row">
-          <div class="attend-av" style="background:${SHOP_COLOR[shop]}20;color:${SHOP_COLOR[shop]}">${h.name[0]}</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:500">${h.name} <span style="color:#999;font-weight:400">· ${h.date.split('.').slice(1).join('.')}</span></div>
-            <div style="font-size:11px;color:#999">출근 ${h.in||'-'} · 퇴근 ${h.out||'-'}${mins!==null?' · '+fmtMinutes(mins):''}</div>
-          </div>
-          <span class="abadge ${h.out?'ab-in':'ab-late'}">${h.out?'완료':'근무중'}</span>
-        </div>`;}).join('')}
-    </div></div>`).join('');
-}
+  ${renderAttendance(shop)}`;}
 
 function renderAttendance(shop){
+  if(!S.punchLoaded)return`<div class="card"><div class="card-body"><div class="loading">근무 상태 확인중...</div></div></div>`;
   const now=new Date();
   return`<div class="card"><div class="card-header"><div class="card-title">근무 확인 · ${shop}점</div></div><div class="card-body">
     <div class="punch-wrap">
       <div class="punch-time" id="clock">${p2(now.getHours())}:${p2(now.getMinutes())}</div>
       <div class="punch-date">${S.punchIn?`출근 ${S.punchIn}${S.punchOut?' · 퇴근 '+S.punchOut:''}`:' 출근 기록 없음'}</div>
-      <button class="punch-btn ${S.clockedIn?'out':''}" onclick="punch()">${S.clockedIn?'퇴근 기록':'출근 기록'}</button>
+      <button class="punch-btn ${S.clockedIn?'out':''}" onclick="punch()" ${S.punchOut&&S.punchIn?'':''}>${S.clockedIn?'퇴근 기록':S.punchOut?'출근 기록 (재출근)':'출근 기록'}</button>
     </div>
   </div></div>`;}
 
-async function toggleCheck(shop,type,i){
-  S.checks[shop][type][i]=!S.checks[shop][type][i];
-  const item=type==='open'?OPEN_CHECKS[i]:CLOSE_CHECKS[i];
-  document.getElementById('mc').innerHTML=renderChecklist();
-  startClock();
-  try{
-    await saveChecklist(shop,type,item,S.checks[shop][type][i]);
-  }catch(e){
-    alert('체크리스트 저장 실패: '+e.message);
-  }
-}
-
-async function punch(){
-  const now=new Date();
-  const t=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
-  try{
-    if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
-    else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
-    S.attendanceLoaded[S.user.showroom]=false;
-  }catch(e){
-    alert('출퇴근 기록 저장 실패: '+e.message);
-  }
-  document.getElementById('mc').innerHTML=renderChecklist();startClock();
+function renderAttendanceHistory(shop){
+  const history=S.attendanceHistory[shop]||[];
+  if(!history.length)return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">출퇴근 기록이 없습니다</div></div></div>`;
+  const grouped=groupAttendanceByMonth(history);
+  return grouped.map(([month,g])=>`<div class="card"><div class="card-header">
+    <div class="card-title">${month}${month===currentMonthKey()?' (이번달)':''}</div>
+    <span style="font-size:11px;color:${SHOP_COLOR[shop]};font-weight:500">${g.days}건</span></div><div class="card-body">
+    ${g.items.map(h=>{const mins=workMinutes(h.in,h.out);return`<div class="attend-row">
+      <div class="attend-av" style="background:${SHOP_COLOR[shop]}20;color:${SHOP_COLOR[shop]}">${h.name[0]}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${h.name} <span style="color:#999;font-weight:400">· ${h.date.split('.').slice(1).join('.')}</span></div>
+        <div style="font-size:11px;color:#999">출근 ${h.in||'-'} · 퇴근 ${h.out||'-'}${mins!==null?' · '+fmtMinutes(mins):''}</div></div>
+      <span class="abadge ${h.out?'ab-in':'ab-late'}">${h.out?'완료':'근무중'}</span>
+    </div>`;}).join('')}
+  </div></div>`).join('');
 }
 
 function renderNotice(){
@@ -869,60 +856,41 @@ function renderNotice(){
   return`
   <div class="page-title">전달사항</div>
   ${shopTabsUI('notice',active,true)}
-  ${isAdmin()?`
-  <button class="cta-btn" style="margin-bottom:10px" onclick="toggleNoticeForm()">
-    <i class="ti ti-plus"></i> 전달사항 작성
-  </button>
-  ${S.showNoticeForm?`
-  <div class="notice-write">
-    <select onchange="S.newNotice.target=this.value">
-      <option value="all">전체 공지</option>
-      <option value="도산">도산점만</option>
-      <option value="한남">한남점만</option>
-      <option value="서촌">서촌점만</option>
-    </select>
-    <select onchange="S.newNotice.level=this.value">
-      <option value="notice">일반 공지</option>
-      <option value="urgent">긴급 주의</option>
-    </select>
+  ${isAdmin()?`<button class="cta-btn" style="margin-bottom:10px" onclick="toggleNoticeForm()"><i class="ti ti-plus"></i> 전달사항 작성</button>
+  ${S.showNoticeForm?`<div class="notice-write">
+    <select onchange="S.newNotice.target=this.value"><option value="all">전체 공지</option><option value="도산">도산점만</option><option value="한남">한남점만</option><option value="서촌">서촌점만</option></select>
+    <select onchange="S.newNotice.level=this.value"><option value="notice">일반 공지</option><option value="urgent">긴급 주의</option></select>
     <input type="text" placeholder="제목" oninput="S.newNotice.title=this.value">
     <textarea rows="4" placeholder="내용" oninput="S.newNotice.body=this.value"></textarea>
-    <button class="cta-btn" onclick="saveNotice()"><i class="ti ti-send"></i> 저장 (구글시트에 반영)</button>
+    <button class="cta-btn" onclick="saveNotice()"><i class="ti ti-send"></i> 저장</button>
     <button class="cta-btn sec" onclick="toggleNoticeForm()">취소</button>
   </div>`:''}`:''}
   <div class="card"><div class="card-body">
-    ${!S.noticesLoaded?`<div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>불러오는 중...</div>`:
-    filtered.length?filtered.map(n=>`
-    <div class="notice-item">
-      <div class="notice-top">
-        <span class="nbadge ${badgeClass[n.badge]||'notice'}">${n.badge==='urgent'?'주의':n.badge==='notice'?'공지':n.target==='all'?'전체':n.target+'점'}</span>
-        <span class="notice-title">${n.title}</span>
-      </div>
+    ${!S.noticesLoaded?`<div class="loading">불러오는 중...</div>`:
+    filtered.length?filtered.map(n=>`<div class="notice-item"><div class="notice-top">
+      <span class="nbadge ${badgeClass[n.badge]||'notice'}">${n.badge==='urgent'?'주의':n.badge==='notice'?'공지':n.target==='all'?'전체':n.target+'점'}</span>
+      <span class="notice-title">${n.title}</span></div>
       <div class="notice-body">${(n.body||'').replace(/\n/g,'<br>')}</div>
       <div class="notice-date">${n.date}${n.writer?' · '+n.writer:''}</div>
     </div>`).join(''):`<div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">전달사항이 없습니다</div>`}
   </div></div>`;}
 
-function toggleNoticeForm(){S.showNoticeForm=!S.showNoticeForm;document.getElementById('mc').innerHTML=renderNotice();}
-
 function renderMore(){
   const menus=[
-    {id:'inv',icon:'ti-packages',title:'적재현황',sub:'도산점 우드장·창고 구성'},
+    {id:'inv',icon:'ti-packages',title:'적재현황',sub:'쇼룸별 우드장·창고 구성'},
     {id:'manual',icon:'ti-book',title:'업무 매뉴얼',sub:'오픈·마감·고객응대'},
     {id:'pos',icon:'ti-device-tablet',title:'포스 매뉴얼',sub:'이지체인 POS·개인결제창'},
     {id:'contacts',icon:'ti-address-book',title:'연락망',sub:'본사·협력사·팀원'},
-    {id:'supply',icon:'ti-armchair',title:'비품리스트',sub:'도산점 재고 현황'},
-    {id:'orders',icon:'ti-truck-delivery',title:'고객 배송주문',sub:'이지어드민 확인 후 입력'},
+    {id:'supply',icon:'ti-armchair',title:'비품리스트',sub:'쇼룸별 재고 현황'},
+    {id:'orders',icon:'ti-truck-delivery',title:'고객 배송주문',sub:'구글시트에서 입력'},
     {id:'wifi',icon:'ti-wifi',title:'Wi-Fi · 계좌 정보',sub:'매장 기본 정보'},
   ];
-  return`
-  <div class="page-title">더보기</div>
+  return`<div class="page-title">더보기</div>
   <div class="card"><div class="card-body" style="padding:4px 16px">
     ${menus.map(m=>`<div class="manual-item" onclick="showSub('${m.id}')">
       <div class="manual-icon"><i class="ti ${m.icon}"></i></div>
       <div><div class="manual-title">${m.title}</div><div class="manual-sub">${m.sub}</div></div>
-      <i class="ti ti-chevron-right" style="margin-left:auto;color:#ccc"></i>
-    </div>`).join('')}
+      <i class="ti ti-chevron-right" style="margin-left:auto;color:#ccc"></i></div>`).join('')}
   </div></div>
   <button class="cta-btn sec" onclick="logout()"><i class="ti ti-logout"></i> 로그아웃</button>`;}
 
@@ -931,20 +899,22 @@ function showSub(id){S.subPage=id;document.getElementById('mc').innerHTML=render
 function renderSub(){
   const back=`<div class="back-row"><button class="back-btn" onclick="S.subPage=null;document.getElementById('mc').innerHTML=renderMore()"><i class="ti ti-arrow-left" style="font-size:20px"></i></button></div>`;
   switch(S.subPage){
-    case'inv':return back+`<div class="page-title">적재현황 · 도산점</div>
-      <div class="inv-shelf">${INV_SHELVES.map(s=>`<div class="shelf-card"><div class="shelf-name">${s.name}</div>${s.items.map(i=>`<div class="shelf-item">${i}</div>`).join('')}</div>`).join('')}</div>`;
+    case'inv':{
+      const shop=S.activeShop.inv;
+      const shelves=INV_SHELVES_BY_SHOP[shop]||[];
+      return back+`<div class="page-title">적재현황</div>
+      ${shopTabsUI('inv',shop,false)}
+      <div class="inv-shelf">${shelves.map(s=>`<div class="shelf-card"><div class="shelf-name">${s.name}</div>${s.items.map(i=>`<div class="shelf-item">${i}</div>`).join('')}</div>`).join('')}</div>`;
+    }
     case'manual':return back+`<div class="page-title">업무 매뉴얼</div>
       <div class="card"><div class="card-header"><div class="card-title">🌅 오픈 업무</div></div><div class="card-body">
-        <div class="section-label">조명 및 기기</div>
-        <p style="font-size:12px;color:#555;line-height:1.8">전체 조명 ON + 입구 스탠드 + 카운터 블루 조명 별도<br>노트북·포스·플레이리스트 ON / 화분쪽 히터 날개 닫기</p>
-        <div class="section-label">청소 순서</div>
-        <p style="font-size:12px;color:#555;line-height:1.8">① 바닥 전체 먼지 쓸기 → 정전기 부직포 닦기<br>② 미니 카페트 돌돌이<br>③ 메인 테이블·장롱 안쪽 물티슈<br>④ 피팅룸 정리 (문 열어두기)<br>⑤ DP 정리·실밥·보풀·스팀<br>⑥ 거울·유리 윈덱스 + 마른수건<br>⑦ 식물 물 주기<br>✔ 청소 완료 후 오픈 사진 단체카톡 공유</p>
+        <p style="font-size:12px;color:#555;line-height:1.8">전체 조명 ON + 입구 스탠드 + 카운터 블루 조명 별도<br>노트북·포스·플레이리스트 ON / 화분쪽 히터 날개 닫기<br><br>① 바닥 전체 먼지 쓸기 → 정전기 부직포 닦기<br>② 미니 카페트 돌돌이<br>③ 메인 테이블·장롱 안쪽 물티슈<br>④ 피팅룸 정리<br>⑤ DP 정리·실밥·보풀·스팀<br>⑥ 거울·유리 윈덱스 + 마른수건<br>⑦ 식물 물 주기<br>✔ 오픈 사진 단체카톡 공유</p>
       </div></div>
       <div class="card"><div class="card-header"><div class="card-title">🌙 마감 업무</div></div><div class="card-body">
-        <p style="font-size:12px;color:#555;line-height:1.8">• 전체 불 OFF (스탠드·블루 별도)<br>• 노트북·포스 OFF (단말기 유지)<br>• 쓰레기·분리수거 (평일만)<br>• 화장실 청소 및 전체 정리정돈<br>• 매출·방문객·특이사항·스탭룩 공유</p>
+        <p style="font-size:12px;color:#555;line-height:1.8">• 전체 불 OFF (스탠드·블루 별도)<br>• 노트북·포스 OFF (단말기 유지)<br>• 쓰레기·분리수거 (평일만)<br>• 화장실 청소 및 정리정돈<br>• 매출·방문객·특이사항·스탭룩 공유</p>
       </div></div>
       <div class="card"><div class="card-header"><div class="card-title">👋 고객 응대</div></div><div class="card-body">
-        <p style="font-size:12px;color:#555;line-height:1.8">① "안녕하세요. 프리터입니다."<br>② 편하게 둘러볼 수 있도록 안내<br>③ 망설이는 고객 사이즈·옵션 안내<br>④ 방문 경로·인스타 안내 (@friturday / @fritur_dosan)<br>• 이너 피팅 고객: 페이스 티슈 1장 (카운터 아래 흰상자)</p>
+        <p style="font-size:12px;color:#555;line-height:1.8">① "안녕하세요. 프리터입니다."<br>② 편하게 둘러볼 수 있도록 안내<br>③ 망설이는 고객 사이즈·옵션 안내<br>④ 방문 경로·인스타 안내<br>• 이너 피팅 고객: 페이스 티슈 1장</p>
       </div></div>`;
     case'pos':return back+`<div class="page-title">포스 매뉴얼</div>
       <div class="card"><div class="card-header"><div class="card-title">이지체인 POS</div></div><div class="card-body">
@@ -952,15 +922,13 @@ function renderSub(){
         <div class="info-row"><div class="info-key">업체코드</div><div class="info-val">seo</div></div>
         <div class="info-row"><div class="info-key">아이디</div><div class="info-val">seo2</div></div>
         <div class="info-row"><div class="info-key">비밀번호</div><div class="info-val">1111</div></div>
-        <div class="info-row"><div class="info-key">지원 문의</div><div class="info-val">정재우 파트장 010-2855-1775</div></div>
       </div></div>
       <div class="card"><div class="card-header"><div class="card-title">⚠️ 교환 처리 주의</div></div><div class="card-body">
-        <p style="font-size:12px;color:#c62828;line-height:1.8;font-weight:500">이지체인 교환 시 추가금액 결제 불가<br>→ 영수증으로 취소 후 재결제 필수</p>
+        <p style="font-size:12px;color:#c62828;line-height:1.8;font-weight:500">이지체인 교환 시 추가금액 결제 불가 → 영수증으로 취소 후 재결제 필수</p>
       </div></div>
       <div class="card"><div class="card-header"><div class="card-title">💳 개인결제창 생성</div></div><div class="card-body">
         <div class="info-row"><div class="info-key">URL</div><div class="info-val"><a href="https://eclogin.cafe24.com/Shop/" target="_blank">eclogin.cafe24.com/Shop</a></div></div>
         <div class="info-row"><div class="info-key">로그인</div><div class="info-val">ID: fritur / 부운영자: friturstore / PW: store123!</div></div>
-        <p style="font-size:12px;color:#555;line-height:1.8;margin-top:10px">① 상품등록 → 일반등록<br>② 분류: <span style="color:#c62828;font-weight:500">개인결제 선택 필수</span><br>③ 상품명: ○○○ 고객님 개인결제창<br>④ 결제금액 입력 → 등록<br>⑤ 쇼핑몰진열화면 → 링크 고객 전달</p>
       </div></div>`;
     case'contacts':return back+`<div class="page-title">연락망</div>
       <div class="card"><div class="card-body">
@@ -970,13 +938,13 @@ function renderSub(){
           <div class="contact-actions">
             <a class="cbtn" href="tel:${c.phone.replace(/-/g,'')}"><i class="ti ti-phone"></i></a>
             <a class="cbtn" href="sms:${c.phone.replace(/-/g,'')}"><i class="ti ti-message"></i></a>
-          </div>
-        </div>`).join('')}
+          </div></div>`).join('')}
       </div></div>
       <div class="card"><div class="card-header"><div class="card-title">계좌번호</div></div><div class="card-body">
         <div class="info-row"><div class="info-key">우리은행</div><div class="info-val">1005-204-611426 · (주)웨이퍼</div></div>
       </div></div>`;
-    case'supply':return back+`<div class="page-title">비품리스트 · 도산점</div>
+    case'supply':return back+`<div class="page-title">비품리스트</div>
+      ${shopTabsUI('inv',S.activeShop.inv,false)}
       <div class="card"><div class="card-body">
         ${SUPPLIES.map(s=>`<div class="supply-item">
           <div style="font-size:13px;${s.warn?'color:#e65100':''}">${s.name}${s.warn?' ⚠️':''}</div>
@@ -985,16 +953,14 @@ function renderSub(){
       </div></div>
       <button class="cta-btn sec" onclick="alert('비품 요청은 전달사항으로 본사에 전송해주세요.')"><i class="ti ti-send"></i> 본사에 비품 요청</button>`;
     case'orders':return back+`<div class="page-title">고객 배송주문</div>
-      <p style="font-size:12px;color:#999;margin:-10px 0 12px">이지어드민 확인 후 직접 입력</p>
-      <button class="cta-btn" onclick="alert('구글시트 배송주문 탭에 직접 입력해주세요.')"><i class="ti ti-external-link"></i> 구글시트에서 입력</button>
+      <p style="font-size:12px;color:#999;margin:-10px 0 12px">이지어드민 확인 후 구글시트에 직접 입력 (쇼룸명·배송일·송장번호·완료여부 기재)</p>
+      <button class="cta-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=배송주문','_blank')"><i class="ti ti-external-link"></i> 구글시트 배송주문 탭 열기</button>
       <div class="card"><div class="card-body">
-        <div class="info-row"><div class="info-key">시트 URL</div><div class="info-val"><a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}" target="_blank">구글시트 배송주문 탭 열기</a></div></div>
+        <div class="info-row"><div class="info-key">입력 항목</div><div class="info-val">날짜 / 쇼룸명 / 고객명 / 연락처 / 상품명 / 수량 / 주소 / 배송일 / 송장번호 / 완료여부 / 메모</div></div>
       </div></div>`;
     case'wifi':return back+`<div class="page-title">Wi-Fi · 매장 정보</div>
-      <div class="wifi-box">
-        <div style="font-size:13px;font-weight:600;margin-bottom:3px"><i class="ti ti-wifi" style="font-size:14px;margin-right:6px"></i>KT_WiFi_5G_6CBB</div>
-        <div style="font-size:12px;color:#555">암호: 0he50kx712</div>
-      </div>
+      <div class="wifi-box"><div style="font-size:13px;font-weight:600;margin-bottom:3px"><i class="ti ti-wifi" style="font-size:14px;margin-right:6px"></i>KT_WiFi_5G_6CBB</div>
+        <div style="font-size:12px;color:#555">암호: 0he50kx712</div></div>
       <div class="card"><div class="card-header"><div class="card-title">매장 기본 정보</div></div><div class="card-body">
         <div class="info-row"><div class="info-key">노트북 PW</div><div class="info-val">2024</div></div>
         <div class="info-row"><div class="info-key">매장 전화</div><div class="info-val"><a href="tel:07088651489">070-8865-1489</a></div></div>
@@ -1008,7 +974,6 @@ function renderSub(){
   }
 }
 
-function p2(n){return String(n).padStart(2,'0');}
 function startClock(){
   clearInterval(window._clk);
   window._clk=setInterval(()=>{
