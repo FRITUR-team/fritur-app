@@ -426,20 +426,16 @@ async function saveSales(shop){
 
 // ===== 체크리스트 저장 =====
 async function saveChecklist(shop,type,item,done){
-  try{
-    await sheetAppend(`체크리스트_${shop}`,[
-      [today(),type==='open'?'오픈':'마감',item,done?'완료':'취소',new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),S.user.name]
-    ]);
-  }catch(e){console.log('체크리스트 저장 실패',e);}
+  await sheetAppend(`체크리스트_${shop}`,[
+    [today(),type==='open'?'오픈':'마감',item,done?'완료':'취소',new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),S.user.name]
+  ]);
 }
 
 // ===== 출퇴근 저장 =====
 async function savePunch(type,time){
-  try{
-    await sheetAppend('근무확인',[
-      [today(),S.user.name,S.user.showroom,type==='in'?time:'',type==='out'?time:'','']
-    ]);
-  }catch(e){console.log('출퇴근 저장 실패',e);}
+  await sheetAppend('근무확인',[
+    [today(),S.user.name,S.user.showroom,type==='in'?time:'',type==='out'?time:'','']
+  ]);
 }
 
 // ===== 전달사항 저장 =====
@@ -585,10 +581,17 @@ function renderHome(){
     </div>
   </div></div>`;}
 
+function todayDisplay(){
+  const n=new Date();
+  const days=['일','월','화','수','목','금','토'];
+  return`${n.getFullYear()}.${p2(n.getMonth()+1)}.${p2(n.getDate())} (${days[n.getDay()]})`;
+}
+
 function renderSales(){
   const shop=S.activeShop.sales;
   return`
   <div class="page-title">매출 현황</div>
+  <p style="font-size:12px;color:#999;margin:-10px 0 14px">${todayDisplay()}</p>
   ${shopTabsUI('sales',shop,false)}
   <div class="shop-tabs" style="margin-bottom:14px">
     <div class="shop-tab ${S.salesView==='input'?'active-all':''}" onclick="setSalesView('input')">입력</div>
@@ -699,7 +702,7 @@ function renderSalesMonthly(shop){
     <div class="sales-input-row">
       <div class="sales-input-label">이번 달 목표</div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${S.monthlyTarget[shop]}" oninput="setTarget('${shop}',this.value)">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${formatComma(S.monthlyTarget[shop])}" oninput="setTarget('${shop}',this.value)">
         <span style="font-size:12px;color:#999;width:14px">원</span>
       </div>
     </div>
@@ -753,6 +756,7 @@ function renderChecklist(){
   const shop=S.activeShop.checklist;
   return`
   <div class="page-title">업무 체크리스트</div>
+  <p style="font-size:12px;color:#999;margin:-10px 0 14px">${todayDisplay()}</p>
   ${shopTabsUI('checklist',shop,false)}
   <div class="shop-tabs" style="margin-bottom:14px">
     <div class="shop-tab ${S.checklistView==='check'?'active-all':''}" onclick="setChecklistView('check')">체크리스트</div>
@@ -837,15 +841,23 @@ async function toggleCheck(shop,type,i){
   const item=type==='open'?OPEN_CHECKS[i]:CLOSE_CHECKS[i];
   document.getElementById('mc').innerHTML=renderChecklist();
   startClock();
-  await saveChecklist(shop,type,item,S.checks[shop][type][i]);
+  try{
+    await saveChecklist(shop,type,item,S.checks[shop][type][i]);
+  }catch(e){
+    alert('체크리스트 저장 실패: '+e.message);
+  }
 }
 
 async function punch(){
   const now=new Date();
   const t=`${p2(now.getHours())}:${p2(now.getMinutes())}`;
-  if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
-  else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
-  S.attendanceLoaded[S.user.showroom]=false;
+  try{
+    if(!S.clockedIn){S.punchIn=t;S.clockedIn=true;await savePunch('in',t);}
+    else{S.punchOut=t;S.clockedIn=false;await savePunch('out',t);}
+    S.attendanceLoaded[S.user.showroom]=false;
+  }catch(e){
+    alert('출퇴근 기록 저장 실패: '+e.message);
+  }
   document.getElementById('mc').innerHTML=renderChecklist();startClock();
 }
 
