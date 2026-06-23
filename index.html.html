@@ -224,7 +224,7 @@ const S={
   activeShop:{sales:'도산',checklist:'도산',notice:'all',inv:'도산'},
   checks:{도산:{open:Array(12).fill(false),close:Array(7).fill(false)},한남:{open:Array(12).fill(false),close:Array(7).fill(false)},서촌:{open:Array(12).fill(false),close:Array(7).fill(false)}},
   checksLoaded:{도산:false,한남:false,서촌:false},
-  salesData:{도산:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},한남:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''},서촌:{card:'',terminal:'',transfer:'',cash:'',visitors:'',buyers:'',special:''}},
+  salesData:{도산:{card:'',terminal:'',transfer:'',cash:'',refundCard:'',refundTerminal:'',refundTransfer:'',refundCash:'',visitors:'',buyers:'',special:''},한남:{card:'',terminal:'',transfer:'',cash:'',refundCard:'',refundTerminal:'',refundTransfer:'',refundCash:'',visitors:'',buyers:'',special:''},서촌:{card:'',terminal:'',transfer:'',cash:'',refundCard:'',refundTerminal:'',refundTransfer:'',refundCash:'',visitors:'',buyers:'',special:''}},
   todaySavedRow:{도산:null,한남:null,서촌:null}, // 오늘 이미 저장된 행이 있으면 행번호 저장(수정용)
   notices:[],noticesLoaded:false,
   clockedIn:false,punchIn:null,punchOut:null,punchLoaded:false,
@@ -286,17 +286,20 @@ async function sheetUpdateRow(sheetName,rowNumber,values){
 
 // ===== 매출 이력 =====
 function calcTotal(d){return parseNum(d.card)+parseNum(d.terminal)+parseNum(d.transfer)+parseNum(d.cash);}
+function calcRefund(d){return parseNum(d.refundCard)+parseNum(d.refundTerminal)+parseNum(d.refundTransfer)+parseNum(d.refundCash);}
+function calcNetTotal(d){return calcTotal(d)-calcRefund(d);}
 
 async function loadSalesHistory(shop){
   try{
-    const rows=await sheetGet(`매출_${shop}!A2:L1000`);
+    const rows=await sheetGet(`매출_${shop}!A2:P1000`);
     S.salesHistory[shop]=rows.map((r,idx)=>({
       rowNum:idx+2,date:r[0]||'',total:parseNum(r[1]),card:parseNum(r[2]),terminal:parseNum(r[3]),
-      transfer:parseNum(r[4]),cash:parseNum(r[5]),visitors:parseNum(r[6]),buyers:parseNum(r[7]),
-      cvr:r[8]||'',special:r[9]||'',writer:r[10]||''
+      transfer:parseNum(r[4]),cash:parseNum(r[5]),
+      refundCard:parseNum(r[6]),refundTerminal:parseNum(r[7]),refundTransfer:parseNum(r[8]),refundCash:parseNum(r[9]),
+      visitors:parseNum(r[10]),buyers:parseNum(r[11]),
+      cvr:r[12]||'',special:r[13]||'',writer:r[14]||''
     })).filter(h=>h.date);
     S.salesHistoryLoaded[shop]=true;
-    // 오늘 이미 저장된 데이터 있으면 입력화면에 불러와서 수정 모드로
     const t=today();
     const todayRow=S.salesHistory[shop].find(h=>h.date===t);
     if(todayRow){
@@ -304,6 +307,8 @@ async function loadSalesHistory(shop){
       S.salesData[shop]={
         card:String(todayRow.card||''),terminal:String(todayRow.terminal||''),
         transfer:String(todayRow.transfer||''),cash:String(todayRow.cash||''),
+        refundCard:String(todayRow.refundCard||''),refundTerminal:String(todayRow.refundTerminal||''),
+        refundTransfer:String(todayRow.refundTransfer||''),refundCash:String(todayRow.refundCash||''),
         visitors:String(todayRow.visitors||''),buyers:String(todayRow.buyers||''),
         special:todayRow.special||''
       };
@@ -442,13 +447,15 @@ async function toggleCheck(shop,type,i){
 async function saveSales(shop){
   const d=S.salesData[shop];
   const total=calcTotal(d);
-  if(total===0){alert('카드/단말기/계좌이체/현금 중 하나 이상 입력해주세요.');return;}
+  const refund=calcRefund(d);
+  if(total===0&&refund===0){alert('카드/단말기/계좌이체/현금 중 하나 이상 입력해주세요.');return;}
   S.syncStatus='saving';
   document.getElementById('mc').innerHTML=renderSales();
   try{
     const vis=parseInt(d.visitors)||0;const buy=parseInt(d.buyers)||0;
     const cvr=vis>0?Math.round(buy/vis*100)+'%':'';
-    const row=[today(),total,d.card,d.terminal,d.transfer,d.cash,d.visitors,d.buyers,cvr,d.special,S.user.name];
+    const netTotal=total-refund;
+    const row=[today(),netTotal,d.card,d.terminal,d.transfer,d.cash,d.refundCard,d.refundTerminal,d.refundTransfer,d.refundCash,d.visitors,d.buyers,cvr,d.special,S.user.name];
     if(S.todaySavedRow[shop]){
       await sheetUpdateRow(`매출_${shop}`,S.todaySavedRow[shop],row);
     }else{
@@ -669,6 +676,8 @@ function setSalesView(v){
 function renderSalesInput(shop){
   const d=S.salesData[shop];
   const total=calcTotal(d);
+  const refund=calcRefund(d);
+  const netTotal=total-refund;
   const vis=parseInt(d.visitors)||0;const buy=parseInt(d.buyers)||0;
   const cvr=vis>0?Math.round(buy/vis*100):0;
   const isEdit=!!S.todaySavedRow[shop];
@@ -678,12 +687,14 @@ function renderSalesInput(shop){
     <span style="font-size:11px;color:#999">이지어드민 확인 후 입력</span>
   </div><div class="card-body">
     <div class="sales-input-row">
-      <div class="sales-input-label" style="font-weight:600">총 매출 (자동계산)</div>
+      <div class="sales-input-label" style="font-weight:600">총 매출 (환불 차감 후)</div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="sales-input readonly-total" type="text" value="${formatComma(total)}" disabled>
+        <input class="sales-input readonly-total" type="text" value="${formatComma(netTotal)}" disabled>
         <span style="font-size:12px;color:#999;width:14px">원</span>
       </div>
     </div>
+    ${refund>0?`<div class="sales-input-row"><div class="sales-input-label" style="color:#c62828">└ 환불 차감액</div>
+      <div style="font-size:13px;font-weight:600;color:#c62828">- ${formatComma(refund)}원</div></div>`:''}
     ${[{key:'card',label:'카드'},{key:'terminal',label:'단말기'},{key:'transfer',label:'계좌이체'},{key:'cash',label:'현금'}].map(f=>`
     <div class="sales-input-row">
       <div class="sales-input-label">${f.label}</div>
@@ -708,16 +719,26 @@ function renderSalesInput(shop){
       <div style="font-size:13px;font-weight:600;color:${SHOP_COLOR[shop]}">${vis>0?cvr+'%':'-'}</div>
     </div>
   </div></div>
+  <div class="card"><div class="card-header"><div class="card-title">🔄 결제수단별 환불</div></div><div class="card-body">
+    ${[{key:'refundCard',label:'카드 환불'},{key:'refundTerminal',label:'단말기 환불'},{key:'refundTransfer',label:'계좌이체 환불'},{key:'refundCash',label:'현금 환불'}].map(f=>`
+    <div class="sales-input-row">
+      <div class="sales-input-label" style="color:#c62828">${f.label}</div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input class="sales-input" type="text" inputmode="numeric" placeholder="0" value="${formatComma(d[f.key])}" oninput="setSales('${shop}','${f.key}',this.value)" style="border-color:#fce4ec">
+        <span style="font-size:12px;color:#999;width:14px">원</span>
+      </div>
+    </div>`).join('')}
+  </div></div>
   <div class="card"><div class="card-header"><div class="card-title">특이사항</div></div><div class="card-body">
     <textarea class="textarea" rows="3" placeholder="반품 사유 / 고객 문의 / 기타" oninput="setSalesText('${shop}','special',this.value)">${d.special}</textarea>
   </div></div>
   <button class="cta-btn" onclick="saveSales('${shop}')"><i class="ti ti-send"></i> ${shop}점 ${isEdit?'매출 수정 저장':'마감 보고 저장'}</button>
   ${isAdmin()?`<div class="card"><div class="card-header"><div class="card-title">전체 요약 (오늘)</div></div><div class="card-body">
-    ${SHOPS.map(s=>{const sd=S.salesData[s];const t=calcTotal(sd);return`
+    ${SHOPS.map(s=>{const sd=S.salesData[s];const t=calcTotal(sd)-calcRefund(sd);return`
     <div class="summary-row">
       <div class="summary-shop"><div class="summary-dot" style="background:${SHOP_COLOR[s]}"></div><span style="font-size:13px">${s}점</span></div>
       <div style="text-align:right">
-        <div style="font-size:13px;font-weight:600">${t>0?formatComma(t)+'원':'미입력'}</div>
+        <div style="font-size:13px;font-weight:600">${t!==0?formatComma(t)+'원':'미입력'}</div>
         ${sd.visitors?`<div style="font-size:11px;color:#999">방문 ${sd.visitors}명 / 구매 ${sd.buyers||0}명</div>`:''}
       </div>
     </div>`}).join('')}
@@ -729,13 +750,16 @@ function renderSalesDaily(shop){
   if(!history.length)return`<div class="card"><div class="card-body"><div style="padding:20px 0;text-align:center;color:#bbb;font-size:13px">아직 저장된 매출 데이터가 없습니다</div></div></div>`;
   const sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
   return`<div class="card"><div class="card-header"><div class="card-title">${shop}점 · 일별 매출</div><span style="font-size:11px;color:#999">최근 ${sorted.length}건</span></div><div class="card-body">
-    ${sorted.map(h=>`<div class="summary-row" style="align-items:flex-start">
+    ${sorted.map(h=>{
+      const refundTotal=(h.refundCard||0)+(h.refundTerminal||0)+(h.refundTransfer||0)+(h.refundCash||0);
+      return`<div class="summary-row" style="align-items:flex-start">
       <div><div style="font-size:13px;font-weight:500">${h.date}${h.date===today()?' (오늘)':''}</div>
         ${h.visitors?`<div style="font-size:11px;color:#999;margin-top:2px">방문 ${h.visitors}명 · 구매 ${h.buyers}명${h.cvr?' · 전환율 '+h.cvr:''}</div>`:''}
-        ${h.special?`<div style="font-size:11px;color:#c62828;margin-top:2px">${h.special}</div>`:''}
+        ${refundTotal>0?`<div style="font-size:11px;color:#c62828;margin-top:2px">환불 ${refundTotal.toLocaleString('ko-KR')}원</div>`:''}
+        ${h.special?`<div style="font-size:11px;color:#999;margin-top:2px">${h.special}</div>`:''}
       </div>
       <div style="font-size:14px;font-weight:600;color:${SHOP_COLOR[shop]}">${h.total.toLocaleString('ko-KR')}원</div>
-    </div>`).join('')}
+    </div>`;}).join('')}
   </div></div>`;
 }
 
